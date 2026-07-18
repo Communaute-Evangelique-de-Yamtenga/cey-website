@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #1e2633;
+  --color-navy-soft: #39435c;
+  --color-blue: #2e3192;
+  --color-blue-dark: #252a7a;
+  --color-blue-tint: #eef0f8;
+  --color-blue-tint-border: #dde0f0;
+  --color-blue-muted: #a9b0e0;
+  --color-red: #98362e;
+  --color-red-dark: #7f2d26;
+  --color-red-tint: #f7ebe9;
+  --color-cream: #f5f4ef;
+  --color-warn-bg: #fff9f0;
+  --color-warn-border: #f0e4ce;
+  --color-warn-fg: #8a6d3b;
+  --color-paper: #ffffff;
+  --color-border: #e9e6df;
+  --color-border-soft: #f0ede6;
+  --color-border-strong: #ddd9cf;
+  --color-ink: #1e2633;
+  --color-ink-muted: #5a6172;
+  --color-ink-faint: #9aa0ae;
+  --color-on-dark: #f5f4ef;
+  --color-on-dark-muted: #c9cdda;
+  --color-on-dark-faint: #8a90a3;
+  --color-on-dark-line: #6f7690;
+
+  --font-serif: var(--font-lora), Georgia, serif;
+  --font-sans: var(--font-karla), system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-ink-faint);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.18s ease;
+}
