@@ -21,15 +21,6 @@ export function ConstructionTeaser() {
             communauté de son nouveau lieu de culte.
           </p>
 
-          <div className="mt-[26px]">
-            <div className="flex justify-between text-[13px] font-bold text-ink">
-              <span>{formatFcfa(constructionProject.raised)} FCFA réunis</span>
-              <span className="font-semibold text-ink-muted">
-                Objectif · {formatFcfa(constructionProject.goal)}
-              </span>
-            </div>
-            <ProgressBar percent={percentFunded()} className="mt-2.5" />
-          </div>
 
           <div className="mt-7 flex flex-wrap items-center gap-3.5">
             <Button href="/projet">Soutenir le projet</Button>

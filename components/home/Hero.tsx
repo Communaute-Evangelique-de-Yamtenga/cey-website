@@ -6,15 +6,12 @@ export function Hero() {
   return (
     <Container className="grid grid-cols-1 items-center gap-10 py-14 sm:py-16 lg:grid-cols-[1.02fr_0.98fr] lg:gap-[60px] lg:py-[76px]">
       <div>
-        <div className="text-xs font-bold uppercase tracking-[0.16em] text-red">
-          Assemblées de Dieu · Ouagadougou
-        </div>
-        <h1 className="mt-3.5 font-serif text-[38px] font-bold leading-[1.14] tracking-[-0.01em] text-ink sm:text-[50px]">
-          Une famille pour grandir dans la foi
+        <h1 className="mt-3.5 font-serif text-[38px] font-bold leading-[1.14] tracking-[-0.01em] text-ink sm:text-[30px]">
+          "L'Évangile est une puissance pour le salut de quiconque croit !"
         </h1>
-        <p className="mt-4.5 max-w-[480px] text-[16.5px] leading-relaxed text-ink-muted">
-          La Communauté Évangélique de Yamtenga vous accueille pour adorer, apprendre et
-          servir — au cœur du quartier, chaque jour de la semaine.
+        <p className="mt-4.5 max-w-[460px] text-[16.5px] leading-relaxed text-ink-muted">
+          Communauté Évangélique de Yamtenga — Une Église locale membre des Églises des Assemblées de Dieu du Burkina-Faso, dont la vision est axée sur l'évangélisation,
+          vous accueille pour adorer, apprendre et servir.
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-3.5">
           <Button href="/evenements">Programme de la semaine</Button>

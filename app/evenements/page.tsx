@@ -38,9 +38,6 @@ export default function EvenementsPage() {
               </div>
             ))}
           </Card>
-          <div className="mt-3 text-xs italic text-ink-faint">
-            Horaires indicatifs — à confirmer par l&apos;église.
-          </div>
           <Notice className="mt-[22px]">
             <div className="text-[13px] font-bold">Programmes imprévus</div>
             <div className="mt-1">

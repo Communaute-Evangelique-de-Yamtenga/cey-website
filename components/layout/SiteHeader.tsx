@@ -35,7 +35,7 @@ export function SiteHeader() {
 
   return (
     <>
-      <div className="sticky top-0 z-60 border-b border-border bg-white/96 backdrop-blur-sm">
+      <div className="sticky top-[37px] z-60 border-b border-border bg-white/96 backdrop-blur-sm">
         <Container className="flex items-center gap-7">
           <Link href="/" className="flex items-center gap-3 py-3">
             <Logo />
@@ -45,8 +45,8 @@ export function SiteHeader() {
                 <br />
                 de Yamtenga
               </span>
-              <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-red">
-                Assemblées de Dieu
+              <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-[0.14em] text-red">
+                Assemblées de Dieu · Ouagadougou
               </span>
             </span>
           </Link>

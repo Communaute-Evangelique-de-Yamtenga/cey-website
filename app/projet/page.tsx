@@ -37,18 +37,6 @@ export default function ProjetPage() {
             <h2 className="font-serif text-[26px] font-semibold tracking-[-0.01em] text-ink sm:text-[28px]">
               Où en est le projet ?
             </h2>
-            <div className="mt-6">
-              <div className="flex justify-between text-[13.5px] font-bold text-ink">
-                <span>{formatFcfa(constructionProject.raised)} FCFA réunis</span>
-                <span className="font-semibold text-ink-muted">{percentFunded()} %</span>
-              </div>
-              <ProgressBar percent={percentFunded()} className="mt-2.5 h-3" />
-              <div className="mt-2.5 text-[13px] text-ink-muted">
-                Objectif : {formatFcfa(constructionProject.goal)} FCFA{" "}
-                <span className="italic text-ink-faint">(montants d&apos;exemple — à remplacer)</span>
-              </div>
-            </div>
-
             <div className="mt-7 flex flex-col gap-3.5">
               {constructionProject.milestones.map((m, i) => (
                 <div key={m.label} className="flex items-start gap-3.5">

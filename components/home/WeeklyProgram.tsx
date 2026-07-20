@@ -27,9 +27,6 @@ export function WeeklyProgram() {
           </Card>
         ))}
       </div>
-      <div className="mt-3.5 text-xs italic text-ink-faint">
-        Horaires indicatifs — à confirmer par l&apos;église.
-      </div>
     </Container>
   );
 }

@@ -37,6 +37,7 @@ export interface Pastor {
   role: string;
   name: string;
   description: string;
+  photo?: string;
 }
 
 export interface ChurchEvent {

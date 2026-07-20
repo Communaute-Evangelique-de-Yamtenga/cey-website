@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/layout/Logo";
+import { Logo, Logofooter } from "@/components/layout/Logo";
 import { SocialLinks } from "@/components/layout/SocialLinks";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
@@ -52,7 +52,7 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 gap-10 border-b border-white/10 pb-11 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
           <div>
             <div className="flex items-center gap-3">
-              <Logo />
+              <Logofooter />
               <span className="font-serif text-[13px] font-bold leading-tight whitespace-nowrap text-on-dark">
                 Communauté Évangélique
                 <br />
@@ -60,7 +60,7 @@ export function SiteFooter() {
               </span>
             </div>
             <p className="mt-4 max-w-[260px] text-[13px] leading-relaxed text-on-dark-faint">
-              Église des Assemblées de Dieu — adorer, grandir et servir au cœur de Yamtenga.
+              Église des Assemblées de Dieu — L'Évangile est une puissance pour le salut de quiconque croit.
             </p>
             <div className="mt-[18px]">
               <SocialLinks size="md" />
@@ -79,7 +79,7 @@ export function SiteFooter() {
               <br />
               Ouagadougou, Burkina Faso
               <br />
-              <span className="italic text-on-dark-faint">+226 — numéro à compléter</span>
+              <span className="italic text-on-dark-faint">+226 — 76-54-01-24</span>
             </div>
             <Button href="/contact" variant="primary" size="sm" className="mt-4">
               Nous écrire

@@ -3,7 +3,7 @@ import { SocialLinks } from "@/components/layout/SocialLinks";
 
 export function TopBar() {
   return (
-    <div className="bg-navy text-[12.5px] font-medium text-on-dark-muted">
+    <div className=" sticky top-0 z-60 bg-navy text-[12.5px] font-medium text-on-dark-muted ">
       <Container className="flex items-center justify-between gap-4 py-2.5">
         <div className="flex items-center gap-2.5">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-red" />
