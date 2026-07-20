@@ -16,7 +16,7 @@ export function Hero() {
         <div className="mt-7 flex flex-wrap items-center gap-3.5">
           <Button href="/evenements">Programme de la semaine</Button>
           <Button href="/contact" variant="outline">
-            Nous localiser
+            Nous Contacter
           </Button>
         </div>
         <div className="mt-6 flex items-center gap-2.5 text-[13px] font-semibold text-ink-muted">

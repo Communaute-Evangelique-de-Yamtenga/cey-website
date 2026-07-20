@@ -69,13 +69,13 @@ export default async function MediasPage({
           </div>
           <div className="flex gap-2.5">
             <a
-              href="#"
+              href="https://www.facebook.com/communauteevangeliquedeyamtenga"
               className="rounded-full bg-blue px-[18px] py-2.5 text-[12.5px] font-bold text-white hover:bg-blue-dark"
             >
               Facebook
             </a>
             <a
-              href="#"
+              href="https://www.youtube.com/@egliseadcey"
               className="rounded-full bg-red px-[18px] py-2.5 text-[12.5px] font-bold text-white hover:bg-red-dark"
             >
               YouTube
@@ -84,7 +84,7 @@ export default async function MediasPage({
               href="#"
               className="rounded-full bg-navy px-[18px] py-2.5 text-[12.5px] font-bold text-white hover:bg-navy-soft"
             >
-              TikTok
+              TikTok(Manquant)
             </a>
           </div>
         </Card>

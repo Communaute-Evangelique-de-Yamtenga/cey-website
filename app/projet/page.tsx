@@ -31,6 +31,8 @@ export default function ProjetPage() {
           <ImagePlaceholder caption="Photo du chantier" className="h-[240px] sm:h-[320px]" />
           <ImagePlaceholder caption="Photo du chantier" className="h-[240px] sm:h-[320px]" />
         </div>
+        
+        <div  id="soutenir" ></div>
 
         <div className="mt-14 grid grid-cols-1 items-start gap-11 lg:grid-cols-[0.9fr_1.1fr] lg:gap-[52px]">
           <div>

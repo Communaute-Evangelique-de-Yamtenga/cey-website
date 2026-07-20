@@ -23,6 +23,7 @@ export interface Structure {
   mission: string;
   upcoming: Activity[];
   past: Activity[];
+  photo?: string | null;
 }
 
 export interface ChoraleGroup {

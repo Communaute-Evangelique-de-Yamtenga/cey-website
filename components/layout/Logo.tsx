@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 export function Logo({ className }: { className?: string }) {
   return (
     <img
-  src="/logo.png"
+  src="/logos-icônes/logo.png"
   alt="Logo CEY"
   className={cn("h-[63px] w-[65px] shrink-0", className)}
   />
@@ -17,7 +17,7 @@ export function Logo({ className }: { className?: string }) {
   export function Logofooter({ className }: { className?: string }) {
   return (
     <img
-  src="/logofooter.png"
+  src="/logos-icônes/logofooter.png"
   alt="Logofooter CEY"
   className={cn("h-[63px] w-[65px] shrink-0", className)}
   />
