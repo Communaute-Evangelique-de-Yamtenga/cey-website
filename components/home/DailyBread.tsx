@@ -1,10 +1,12 @@
 import { Container } from "@/components/ui/Container";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { ThematicStudyPanel } from "@/components/home/ThematicStudyToggle";
-import { verseOfTheDay, annualReadingGuide, thematicStudy } from "@/lib/content/daily-bread";
+import { annualReadingGuide } from "@/lib/content/daily-bread";
 
-export function DailyBread() {
-  const verse = verseOfTheDay();
+export async  function DailyBread() {
+  const res = await fetch("http://localhost:3000/api/daily-bread", { next: { revalidate: 3600 } });
+  const verse = await res.json();
+
   const dateLabel = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -58,7 +60,9 @@ export function DailyBread() {
               </div>
             </div>
           </div>
-          <ImagePlaceholder caption="Image du verset du jour (facultatif)" className="h-[220px] sm:h-[290px]" />
+          {verse.image && (
+            <img src={verse.image} alt="Verset du jour" className="h-[220px] w-full rounded-2xl object-cover sm:h-[290px]" />
+          )}
         </div>
 
         {/* Guide annuel + étude thématique */}
@@ -83,11 +87,15 @@ export function DailyBread() {
               <span className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-blue-muted">
                 Étude thématique de la Parole de Dieu
               </span>
-              <span className="text-[11.5px] text-on-dark-line">{thematicStudy.series}</span>
+              <span className="text-[11.5px] text-on-dark-line">La Bonne Semence</span>
             </div>
-            <div className="font-serif text-2xl font-semibold text-on-dark">{thematicStudy.title}</div>
-            <p className="text-[13.5px] leading-relaxed text-on-dark-muted">{thematicStudy.excerpt}</p>
-            <ThematicStudyPanel dateLabel={dateLabel} />
+            <div className="font-serif text-2xl font-semibold text-on-dark">{verse.studyTitle}</div>
+            <ThematicStudyPanel dateLabel={dateLabel} 
+              studyTitle={verse.studyTitle}
+              studyVerses={verse.studyVerses}
+              studyParagraphs={verse.studyParagraphs}
+              studySource={verse.studySource}
+            />
           </div>
         </div>
       </Container>
