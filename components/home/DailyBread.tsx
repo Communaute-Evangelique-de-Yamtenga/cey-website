@@ -67,14 +67,14 @@ export async  function DailyBread() {
 
         {/* Guide annuel + étude thématique */}
         <div className="mt-9 grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[1fr_1.55fr]">
-          <div className="flex flex-col gap-[18px] rounded-2xl border border-white/14 bg-white/5 p-[26px]">
+          <div className="flex flex-col justify-between gap-[18px] rounded-2xl border border-white/14 bg-white/5 p-[26px]">
             <div className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-blue-muted">
               Guide annuel du lecteur de la Bible
             </div>
             <div>
               <div className="text-[12.5px] text-on-dark-muted">{annualReadingGuide.label}</div>
               <div className="mt-1.5 font-serif text-[34px] font-semibold text-on-dark">
-                {annualReadingGuide.reading}
+                {verse.guideReading}
               </div>
             </div>
             <div className="mt-auto text-[12.5px] leading-relaxed text-on-dark-line">
@@ -90,8 +90,12 @@ export async  function DailyBread() {
               <span className="text-[11.5px] text-on-dark-line">La Bonne Semence</span>
             </div>
             <div className="font-serif text-2xl font-semibold text-on-dark">{verse.studyTitle}</div>
+            {verse.studyParagraphs?.[0] && (
+            <p className="text-[13.5px] leading-relaxed  text-[#F5F5F5]">« {verse.studyParagraphs[0]} »</p>
+            )}
             <ThematicStudyPanel dateLabel={dateLabel} 
               studyTitle={verse.studyTitle}
+              studyIntro={verse.studyParagraphs?.[0]}
               studyVerses={verse.studyVerses}
               studyParagraphs={verse.studyParagraphs}
               studySource={verse.studySource}

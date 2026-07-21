@@ -9,9 +9,10 @@ type Props = {
   studyVerses: string[];
   studyParagraphs: string[];
   studySource: string | null;
+  studyIntro: string | null;
 };
 
-export function ThematicStudyPanel({ dateLabel, studyTitle, studyVerses, studyParagraphs, studySource }: Props) {
+export function ThematicStudyPanel({ dateLabel, studyTitle, studyVerses, studyParagraphs, studySource, studyIntro }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,7 +37,6 @@ export function ThematicStudyPanel({ dateLabel, studyTitle, studyVerses, studyPa
             <h3 className="mt-3.5 font-serif text-[26px] font-semibold tracking-[-0.01em] text-ink sm:text-[30px]">
               {studyTitle}
             </h3>
-            <p className="mt-4 text-[15.5px] leading-[1.8] text-[#3A4152]">Les versets du jour décrivent trois situations où l'unique enfant d'une famille est au cœur d'un miracle accompli par Jésus.</p>
             {studyVerses?.map((v, i) => (
               <div key={i} className="mt-[22px] rounded-r-xl border border-l-[3px] border-border border-l-blue bg-white px-6 py-5">
                 <div className="font-serif text-base italic leading-relaxed text-ink">{v}</div>

@@ -35,5 +35,11 @@ export async function GET() {
     const studyParagraphs = studyTitleIndex >= 0 ? studyLines.slice(studyTitleIndex + 1).filter((l: string) => !l.includes("editeurbpc")) : [];
     const studySource = studyLines.find((l: string) => l.includes("editeurbpc.com")) ?? null;
 
-    return Response.json({ text, reference, url: bibleUrl, image, studyTitle, studyVerses, studyParagraphs, studySource });
+    const guidePost = data.data?.find((p: { message: string }) =>
+      p.message?.toLowerCase().includes("guide annuel")
+    );
+    const guideLines = guidePost?.message?.split("\n").filter(Boolean) ?? [];
+    const guideReading = guideLines[guideLines.length - 1] ?? null;
+
+    return Response.json({ text, reference, url: bibleUrl, image, studyTitle, studyVerses, studyParagraphs, studySource, guideReading });
 }
