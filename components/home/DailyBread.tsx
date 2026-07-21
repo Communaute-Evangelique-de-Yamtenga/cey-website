@@ -4,7 +4,7 @@ import { ThematicStudyPanel } from "@/components/home/ThematicStudyToggle";
 import { annualReadingGuide } from "@/lib/content/daily-bread";
 
 export async  function DailyBread() {
-  const res = await fetch("http://localhost:3000/api/daily-bread", { next: { revalidate: 3600 } });
+  const res = await fetch("http://localhost:3000/api/daily-bread", { cache: "no-store" });
   const verse = await res.json();
 
   const dateLabel = new Intl.DateTimeFormat("fr-FR", {
