@@ -26,7 +26,7 @@ export default function EvenementsPage() {
             {weeklyProgram.map((item) => (
               <div
                 key={item.day}
-                className="flex items-center gap-4 border-t border-border-soft px-[22px] py-4 first:border-t-0"
+                className="flex items-center gap-20 border-t border-border-soft px-[22px] py-4 first:border-t-0"
               >
                 <span className="w-[86px] flex-none text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-red">
                   {item.day}

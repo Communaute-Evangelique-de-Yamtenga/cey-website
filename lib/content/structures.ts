@@ -7,6 +7,7 @@ export const structures: Structure[] = [
     full: "Jeunesse des Assemblées de Dieu",
     publicCible: "Adolescents & jeunes de l'église",
     rendezVous: "Samedi · 15h00",
+    photo: "/JAD_images/bureau.png",
     description:
       "La structure de la jeunesse de l'église : elle rassemble, forme et accompagne les jeunes dans leur marche avec Dieu.",
     mission:
@@ -54,6 +55,7 @@ export const structures: Structure[] = [
     full: "Signification du sigle à compléter",
     publicCible: "À préciser",
     rendezVous: "Jour & heure à préciser",
+    photo: null,
     description:
       "Présentation de la structure MHEB — mission, vision et activités à compléter avec vos textes.",
     mission:
@@ -67,6 +69,7 @@ export const structures: Structure[] = [
     full: "Signification du sigle à compléter",
     publicCible: "À préciser",
     rendezVous: "Jour & heure à préciser",
+    photo: null,
     description:
       "Présentation de la structure ASC — mission, vision et activités à compléter avec vos textes.",
     mission:
@@ -80,6 +83,7 @@ export const structures: Structure[] = [
     full: "Signification du sigle à compléter",
     publicCible: "À préciser",
     rendezVous: "Jour & heure à préciser",
+    photo: null,
     description:
       "Présentation de la structure DENAD — mission, vision et activités à compléter avec vos textes.",
     mission:

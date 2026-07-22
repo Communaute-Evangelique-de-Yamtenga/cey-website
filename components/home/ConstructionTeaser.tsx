@@ -23,7 +23,7 @@ export function ConstructionTeaser() {
 
 
           <div className="mt-7 flex flex-wrap items-center gap-3.5">
-            <Button href="/projet">Soutenir le projet</Button>
+            <Button href="/projet#soutenir">Soutenir le projet</Button>
             <Link href="/projet" className="text-[13.5px] font-bold text-blue hover:text-red">
               Découvrir le chantier →
             </Link>

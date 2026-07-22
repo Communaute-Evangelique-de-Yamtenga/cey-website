@@ -1,10 +1,12 @@
 import { Container } from "@/components/ui/Container";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { ThematicStudyPanel } from "@/components/home/ThematicStudyToggle";
-import { verseOfTheDay, annualReadingGuide, thematicStudy } from "@/lib/content/daily-bread";
+import { annualReadingGuide } from "@/lib/content/daily-bread";
 
-export function DailyBread() {
-  const verse = verseOfTheDay();
+export async  function DailyBread() {
+  const res = await fetch("http://localhost:3000/api/daily-bread", { cache: "no-store" });
+  const verse = await res.json();
+
   const dateLabel = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -58,19 +60,21 @@ export function DailyBread() {
               </div>
             </div>
           </div>
-          <ImagePlaceholder caption="Image du verset du jour (facultatif)" className="h-[220px] sm:h-[290px]" />
+          {verse.image && (
+            <img src={verse.image} alt="Verset du jour" className="h-[280px] w-full rounded-2xl object-cover sm:h-[330px]" />
+          )}
         </div>
 
         {/* Guide annuel + étude thématique */}
         <div className="mt-9 grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[1fr_1.55fr]">
-          <div className="flex flex-col gap-[18px] rounded-2xl border border-white/14 bg-white/5 p-[26px]">
+          <div className="flex flex-col justify-between gap-[18px] rounded-2xl border border-white/14 bg-white/5 p-[26px]">
             <div className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-blue-muted">
               Guide annuel du lecteur de la Bible
             </div>
             <div>
               <div className="text-[12.5px] text-on-dark-muted">{annualReadingGuide.label}</div>
               <div className="mt-1.5 font-serif text-[34px] font-semibold text-on-dark">
-                {annualReadingGuide.reading}
+                {verse.guideReading}
               </div>
             </div>
             <div className="mt-auto text-[12.5px] leading-relaxed text-on-dark-line">
@@ -83,11 +87,19 @@ export function DailyBread() {
               <span className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-blue-muted">
                 Étude thématique de la Parole de Dieu
               </span>
-              <span className="text-[11.5px] text-on-dark-line">{thematicStudy.series}</span>
+              <span className="text-[11.5px] text-on-dark-line">La Bonne Semence</span>
             </div>
-            <div className="font-serif text-2xl font-semibold text-on-dark">{thematicStudy.title}</div>
-            <p className="text-[13.5px] leading-relaxed text-on-dark-muted">{thematicStudy.excerpt}</p>
-            <ThematicStudyPanel dateLabel={dateLabel} />
+            <div className="font-serif text-2xl font-semibold text-on-dark">{verse.studyTitle}</div>
+            {verse.studyParagraphs?.[0] && (
+            <p className="text-[13.5px] leading-relaxed  text-[#F5F5F5]">« {verse.studyParagraphs[0]} »</p>
+            )}
+            <ThematicStudyPanel dateLabel={dateLabel} 
+              studyTitle={verse.studyTitle}
+              studyIntro={verse.studyParagraphs?.[0]}
+              studyVerses={verse.studyVerses}
+              studyParagraphs={verse.studyParagraphs}
+              studySource={verse.studySource}
+            />
           </div>
         </div>
       </Container>

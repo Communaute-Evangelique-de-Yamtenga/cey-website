@@ -63,7 +63,11 @@ export default async function StructurePage({
               Rejoindre cette structure
             </Button>
           </div>
-          <ImagePlaceholder caption="Photo de la structure" className="h-[280px] w-full sm:h-[330px]" />
+          {structure.photo ? (
+          <img src={structure.photo} alt={`Photo ${structure.id}`} className="h-[280px] w-full sm:h-[330px] rounded-2xl object-cover" />
+            ) : (
+                  <ImagePlaceholder caption="Photo de la structure" className="h-[280px] w-full sm:h-[330px]" />
+                )}
         </div>
 
         <section className="mt-[60px]">
@@ -101,10 +105,12 @@ export default async function StructurePage({
           <h3 className="mt-2.5 font-serif text-[23px] font-semibold tracking-[-0.01em] text-ink sm:text-[27px]">
             Le bureau de la structure
           </h3>
-          <ImagePlaceholder
-            caption="Photo d'ensemble du bureau de la structure"
-            className="mt-6 h-[280px] w-full sm:h-[320px]"
-          />
+          {structure.photo ? (
+          <img src={structure.photo} alt={`Bureau ${structure.id}`} className="mt-6 h-[280px] w-full sm:h-[320px] rounded-2xl object-cover" />
+          ) : (
+                <ImagePlaceholder caption="Photo d'ensemble du bureau de la structure" className="mt-6 h-[280px] w-full sm:h-[320px]" />
+              )}
+
           <div className="mt-[18px] grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
             {bureauRoles.map((role) => (
               <div

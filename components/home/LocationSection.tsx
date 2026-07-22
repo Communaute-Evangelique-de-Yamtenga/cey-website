@@ -13,13 +13,13 @@ export function LocationSection() {
       <Container className="py-16 sm:py-[76px]">
 
         {/* Titre centré en haut */}
+        <div id="Annexe_localisaion"></div>
         <div className="mb-8 text-center">
           <div className="text-xs font-bold uppercase tracking-[0.16em] text-red">Localisation</div>
           <h2 className="mt-2.5 font-serif text-[28px] font-semibold tracking-[-0.01em] text-ink sm:text-[34px]">
             Venez nous voir
           </h2>
         </div>
-
         {/* Grille : grande carte à gauche, 3 annexes à droite */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_0.4fr]">
 
@@ -36,7 +36,6 @@ export function LocationSection() {
               referrerPolicy="strict-origin-when-cross-origin"
             />
           </div>
-
           {/* Droite — 3 annexes empilées */}
           <div className="rounded-2xl border border-border bg-paper p-4">
             <div className="mb-4 text-[13px] text-ink-muted">Temples annexes — localisations à préciser</div>
