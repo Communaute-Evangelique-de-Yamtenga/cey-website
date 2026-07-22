@@ -50,19 +50,27 @@ export function MediaCard({ item, tone = "light" }: { item: MediaItem; tone?: "l
       >
         {item.title}
       </div>
-      <div className={cn("mt-1 text-[11.5px]", tone === "dark" ? "text-on-dark-faint" : "text-ink-faint")}>
-        {item.category} · {item.date}
-      </div>
+
     </div>
   );
 }
 
 export function MediaCardLarge({ item }: { item: MediaItem }) {
-  return (
-    <div className="cursor-pointer">
-      <PlayThumbnail duration={item.duration} category={item.category} showCategory height="h-[180px]" />
-      <div className="mt-3.5 text-[15px] font-bold leading-snug text-ink">{item.title}</div>
-      <div className="mt-1 text-[12.5px] text-ink-faint">{item.date}</div>
+  const inner = (
+    <div className="cursor-pointer group">
+      {item.thumbnail ? (
+        <div className="relative overflow-hidden rounded-2xl h-[180px]">
+          <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/95 pl-0.5 text-ink">▶</span>
+          </span>
+        </div>
+      ) : (
+        <PlayThumbnail duration={item.duration} category={item.category} showCategory height="h-[180px]" />
+      )}
+      <div className="mt-3.5 text-[15px] font-bold leading-snug text-ink line-clamp-2">{item.title}</div>
+
     </div>
   );
+  return item.url ? <a href={item.url} target="_blank" rel="noreferrer">{inner}</a> : inner;
 }

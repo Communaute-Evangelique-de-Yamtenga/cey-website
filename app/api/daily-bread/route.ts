@@ -32,18 +32,18 @@ export async function GET() {
 
         const lines = post.message.split("\n").filter(Boolean);
         const bibleUrl = lines.find((l: string) => l.startsWith("https://bible.com")) ?? null;
-        const reference = lines.find((l: string) => /^[A-ZÀ-Ü]/.test(l) && !l.includes("VERSET") && !l.includes("Béni")) ?? null;
+        const reference = lines.find((l: string) => /^[A-ZÀ-Ü]/.test(l) && !l.includes("VERSET") && !l.includes("Béni") && l.trim() !== "LSG") ?? null;
         const rawText = lines.find((l: string) => l.startsWith("[")) ?? null;
         const text = rawText ? rawText.replace(/^\[\d+\]\s*/, "") : null;
         const image = post.attachments?.data?.[0]?.media?.image?.src ?? null;
 
         const studyLines = studyPost?.message?.split("\n").filter(Boolean) ?? [];
-        const studyVerses = studyLines.slice(1).filter((l: string) => /\(Luc|Jean|Mat|Marc|Rom|Ps|Gen|Ex/.test(l));
         const studyTitle = studyLines.find((l: string) =>
             !l.includes("ÉTUDE") && !l.includes("(") && !l.includes("editeurbpc") &&
             l.trim().length > 3 && !/^–/.test(l.trim())
         ) ?? null;
         const studyTitleIndex = studyTitle ? studyLines.indexOf(studyTitle) : -1;
+        const studyVerses = studyLines.slice(1, studyTitleIndex > 0 ? studyTitleIndex : undefined).filter((l: string) => /\(Luc|Jean|Mat|Marc|Rom|Ps|Dan|Gen|Ex|Actes|Ap|1Co|2Co|Gal|Eph|Phil|Col|1Th|2Th|1Ti|2Ti|Tit|Phm|Héb|Jac|1Pi|2Pi|1Jn|2Jn|3Jn|Jud|Nb|Dt|Jos|Jug|Rut|1Sa|2Sa|1Ro|2Ro|1Ch|2Ch|Esd|Né|Est|Job|Pr|Ec|Ca|És|Jér|Lam|Éz|Os|Joël|Am|Ab|Jon|Mi|Na|Ha|So|Ag|Za|Mal/.test(l));
         const studyParagraphs = studyTitleIndex >= 0 ? studyLines.slice(studyTitleIndex + 1).filter((l: string) => !l.includes("editeurbpc")) : [];
         const studySource = studyLines.find((l: string) => l.includes("editeurbpc.com")) ?? null;
 

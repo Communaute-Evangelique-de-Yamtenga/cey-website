@@ -61,7 +61,7 @@ export async  function DailyBread() {
             </div>
           </div>
           {verse.image && (
-            <img src={verse.image} alt="Verset du jour" className="h-[220px] w-full rounded-2xl object-cover sm:h-[290px]" />
+            <img src={verse.image} alt="Verset du jour" className="h-[280px] w-full rounded-2xl object-cover sm:h-[330px]" />
           )}
         </div>
 

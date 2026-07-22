@@ -6,10 +6,17 @@ import { PageHero } from "@/components/ui/PageHero";
 import { MediaCardLarge } from "@/components/media/MediaCard";
 import { cn } from "@/lib/cn";
 import { mediaCategories, mediaItems } from "@/lib/content/media";
+import type { MediaItem } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Médias" };
 
 const ALL = "Tout";
+
+type YTVideo = { videoId: string; title: string; date: string; thumbnail: string; url: string };
+
+function ytToMediaItem(v: YTVideo, category: string): MediaItem {
+  return { title: v.title, category, duration: "", date: v.date, videoId: v.videoId, thumbnail: v.thumbnail, url: v.url };
+}
 
 export default async function MediasPage({
   searchParams,
@@ -18,7 +25,23 @@ export default async function MediasPage({
 }) {
   const { categorie } = await searchParams;
   const active = categorie && (mediaCategories as readonly string[]).includes(categorie) ? categorie : ALL;
-  const items = active === ALL ? mediaItems : mediaItems.filter((m) => m.category === active);
+
+  const res = await fetch("http://localhost:3000/api/youtube", { cache: "no-store" });
+  const ytData = await res.json();
+
+  const ytItems: MediaItem[] = [
+    ...(ytData.culte ?? []).map((v: YTVideo) => ytToMediaItem(v, "Cultes de dimanche")),
+    ...(ytData.louange ?? []).map((v: YTVideo) => ytToMediaItem(v, "Louanges & Adoration")),
+    ...(ytData.etude ?? []).map((v: YTVideo) => ytToMediaItem(v, "Études bibliques")),
+    ...(ytData.priere ?? []).map((v: YTVideo) => ytToMediaItem(v, "Mois de prière")),
+  ];
+
+  // Pour chaque item statique, on le garde seulement si YouTube n'a pas de vidéos pour sa catégorie
+  const ytCategories = new Set(ytItems.map((i) => i.category));
+  const fallbackItems = mediaItems.filter((m) => !ytCategories.has(m.category));
+  const allItems = [...ytItems, ...fallbackItems];
+
+  const items = active === ALL ? allItems : allItems.filter((m) => m.category === active);
 
   return (
     <div>

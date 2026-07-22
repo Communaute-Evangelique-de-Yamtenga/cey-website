@@ -61,6 +61,9 @@ export interface MediaItem {
   category: string;
   duration: string;
   date: string;
+  videoId?: string;
+  thumbnail?: string;
+  url?: string;
 }
 
 export interface Verse {
