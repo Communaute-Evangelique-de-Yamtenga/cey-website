@@ -41,7 +41,16 @@ export default async function MediasPage({
   // Pour chaque item statique, on le garde seulement si YouTube n'a pas de vidéos pour sa catégorie
   const ytCategories = new Set(ytItems.map((i) => i.category));
   const fallbackItems = mediaItems.filter((m) => !ytCategories.has(m.category));
-  const allItems = [...ytItems, ...fallbackItems];
+  const seen = new Set<string>();
+  const allItems = [...ytItems, ...fallbackItems].filter((i) => {
+    const keyId = i.videoId ?? "";
+    const keyTitle = i.title.trim().toLowerCase();
+    if (keyId && seen.has(keyId)) return false;
+    if (keyTitle && seen.has(keyTitle)) return false;
+    if (keyId) seen.add(keyId);
+    if (keyTitle) seen.add(keyTitle);
+    return true;
+  });
 
   const items = active === ALL ? allItems : allItems.filter((m) => m.category === active);
 
@@ -93,8 +102,13 @@ export default async function MediasPage({
                 <div key={label}>
                   <h2 className="mb-5 font-serif text-[20px] font-semibold text-ink">{label}</h2>
                   <div className="grid grid-cols-1 gap-[26px] sm:grid-cols-2 lg:grid-cols-3">
-                    {displayItems.map((item) => <MediaCardLarge key={item.title} item={item} />)}
+                    {displayItems.map((item) => <MediaCardLarge key={item.videoId ?? item.title} item={item} />)}
                     {Array.from({ length: emptyCount }).map((_, i) => <MediaCardEmpty key={`empty-${i}`} category={key} />)}
+                  </div>
+                  <div className="mt-5 text-right">
+                    <Link href={`/medias?categorie=${encodeURIComponent(key)}`} className="text-[12.5px] font-bold text-ink-muted hover:text-ink">
+                      Voir tout — {label} →
+                    </Link>
                   </div>
                 </div>
               );
