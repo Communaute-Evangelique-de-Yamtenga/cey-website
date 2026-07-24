@@ -89,7 +89,7 @@ export async  function DailyBread() {
               </span>
               <span className="text-[11.5px] text-on-dark-line">La Bonne Semence</span>
             </div>
-            <div className="font-serif text-2xl font-semibold text-on-dark">{verse.studyTitle}</div>
+            <div className="font-serif text-2xl font-semibold text-[#F5F5F5]">{verse.studyTitle}</div>
             {verse.studyParagraphs?.[0] && (
             <p className="text-[13.5px] leading-relaxed  text-[#F5F5F5]">« {verse.studyParagraphs[0]} »</p>
             )}

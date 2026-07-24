@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { PageHero } from "@/components/ui/PageHero";
-import { MediaCardLarge } from "@/components/media/MediaCard";
+import { MediaCardLarge, MediaCardEmpty } from "@/components/media/MediaCard";
 import { cn } from "@/lib/cn";
 import { mediaCategories, mediaItems } from "@/lib/content/media";
 import type { MediaItem } from "@/lib/types";
@@ -12,10 +12,10 @@ export const metadata: Metadata = { title: "Médias" };
 
 const ALL = "Tout";
 
-type YTVideo = { videoId: string; title: string; date: string; thumbnail: string; url: string };
+type YTVideo = { videoId: string; title: string; date: string; thumbnail: string; url: string; source?: string };
 
 function ytToMediaItem(v: YTVideo, category: string): MediaItem {
-  return { title: v.title, category, duration: "", date: v.date, videoId: v.videoId, thumbnail: v.thumbnail, url: v.url };
+  return { title: v.title, category, duration: "", date: v.date, videoId: v.videoId, thumbnail: v.thumbnail, url: v.url, source: (v.source as MediaItem["source"]) ?? "youtube" };
 }
 
 export default async function MediasPage({
@@ -34,6 +34,8 @@ export default async function MediasPage({
     ...(ytData.louange ?? []).map((v: YTVideo) => ytToMediaItem(v, "Louanges & Adoration")),
     ...(ytData.etude ?? []).map((v: YTVideo) => ytToMediaItem(v, "Études bibliques")),
     ...(ytData.priere ?? []).map((v: YTVideo) => ytToMediaItem(v, "Mois de prière")),
+    ...(ytData.enseignement ?? []).map((v: YTVideo) => ytToMediaItem(v, "Enseignements")),
+    ...(ytData.autres ?? []).map((v: YTVideo) => ytToMediaItem(v, "Autres")),
   ];
 
   // Pour chaque item statique, on le garde seulement si YouTube n'a pas de vidéos pour sa catégorie
@@ -72,10 +74,36 @@ export default async function MediasPage({
           })}
         </div>
 
-        <div className="mt-[34px] grid grid-cols-1 gap-[26px] sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <MediaCardLarge key={item.title} item={item} />
-          ))}
+        <div className="mt-[34px] space-y-12">
+          {active === ALL ? (
+            [
+              { label: "Cultes de dimanche", key: "Cultes de dimanche" },
+              { label: "Louanges & Adoration", key: "Louanges & Adoration" },
+              { label: "Études bibliques", key: "Études bibliques" },
+              { label: "Mois de prière", key: "Mois de prière" },
+              { label: "Enseignements", key: "Enseignements" },
+              { label: "Autres", key: "Autres" },
+            ].map(({ label, key }) => {
+              const sectionItems = allItems.filter((m) => m.category === key);
+              const displayItems = active === ALL ? sectionItems.slice(0, key === "Autres" ? 6 : 3) : sectionItems;
+              const fillEmpty = ["Louanges & Adoration", "Études bibliques", "Enseignements"].includes(key);
+              const emptyCount = fillEmpty ? Math.max(0, 3 - displayItems.length) : 0;
+              if (displayItems.length === 0 && emptyCount === 0) return null;
+              return (
+                <div key={label}>
+                  <h2 className="mb-5 font-serif text-[20px] font-semibold text-ink">{label}</h2>
+                  <div className="grid grid-cols-1 gap-[26px] sm:grid-cols-2 lg:grid-cols-3">
+                    {displayItems.map((item) => <MediaCardLarge key={item.title} item={item} />)}
+                    {Array.from({ length: emptyCount }).map((_, i) => <MediaCardEmpty key={`empty-${i}`} category={key} />)}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="grid grid-cols-1 gap-[26px] sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((item) => <MediaCardLarge key={item.title} item={item} />)}
+            </div>
+          )}
         </div>
         {items.length === 0 ? (
           <div className="mt-10 text-center text-sm text-ink-faint">
