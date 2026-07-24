@@ -64,6 +64,7 @@ export interface MediaItem {
   videoId?: string;
   thumbnail?: string;
   url?: string;
+  source?: "youtube" | "facebook";
 }
 
 export interface Verse {
