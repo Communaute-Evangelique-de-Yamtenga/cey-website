@@ -1,5 +1,7 @@
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const BASE = "https://www.googleapis.com/youtube/v3";
+const FB_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
+const FB_PAGE_ID = process.env.FACEBOOK_PAGE_ID;
 
 type Video = { videoId: string; title: string; date: string; thumbnail: string; url: string; source?: string };
 
@@ -45,12 +47,40 @@ function filterVideos(all: (Video & { title_raw?: string; description?: string }
 
 
 export const playlists = {
-    culte: { id: "PLZQId5viBilA", label: "Cultes de dimanche", url: "https://www.youtube.com/playlist?list=PLZQId5viBilA" },
-    louange: { id: "PLW7583L8vUEc", label: "Louange & Adoration", url: "https://www.youtube.com/playlist?list=PLW7583L8vUEc" },
-    etude: { id: "PLYNdK2z5pYzY", label: "Études bibliques", url: "https://www.youtube.com/playlist?list=PLYNdK2z5pYzY" },
-    enseignement: { id: null, label: "Enseignements", url: null },
-    priere: { id: "PLOI8TP0FOde4", label: "Mois de prière", url: "https://www.youtube.com/playlist?list=PLOI8TP0FOde4" },
+    culte: { id: "PLZQId5viBilA", label: "Cultes de dimanche", url: "https://www.youtube.com/playlist?list=PLZQId5viBilA", fbKeyword: "culte" },
+    louange: { id: "PLW7583L8vUEc", label: "Louange & Adoration", url: "https://www.youtube.com/playlist?list=PLW7583L8vUEc", fbKeyword: "louange" },
+    etude: { id: "PLYNdK2z5pYzY", label: "Études bibliques", url: "https://www.youtube.com/playlist?list=PLYNdK2z5pYzY", fbKeyword: "étude biblique" },
+    enseignement: { id: null, label: "Enseignements", url: null, fbKeyword: "enseignement" },
+    priere: { id: "PLOI8TP0FOde4", label: "Mois de prière", url: "https://www.youtube.com/playlist?list=PLOI8TP0FOde4", fbKeyword: "mois de prière" },
+    priereJeudi: { id: null, label: "Prière du jeudi", url: null, fbKeyword: "prière du jeudi" },
+    veillee: { id: null, label: "Veillée de prière", url: null, fbKeyword: "veillée" },
 };
+
+type Video = { videoId: string; title: string; date: string; thumbnail: string; url: string };
+
+async function getFacebookVideos(keyword: string, maxResults = 12): Promise<Video[]> {
+    try {
+        const res = await fetch(
+            `https://graph.facebook.com/${FB_PAGE_ID}/videos?fields=title,description,source,created_time&access_token=${FB_TOKEN}&limit=${maxResults}`,
+            { cache: "no-store" }
+        );
+        const data = await res.json();
+        return (data.data ?? [])
+            .filter((v: { title?: string; description?: string }) =>
+                v.title?.toLowerCase().includes(keyword.toLowerCase()) ||
+                v.description?.toLowerCase().includes(keyword.toLowerCase())
+            )
+            .map((v: { id: string; title?: string; created_time: string; source: string }) => ({
+                videoId: v.id,
+                title: v.title ?? "",
+                date: new Date(v.created_time).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
+                thumbnail: "",
+                url: `https://www.facebook.com/watch/?v=${v.id}`,
+            }));
+    } catch {
+        return [];
+    }
+}
 
 async function getVideoPublishedDates(videoIds: string[]): Promise<Record<string, string>> {
     if (videoIds.length === 0) return {};
