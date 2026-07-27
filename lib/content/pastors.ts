@@ -32,7 +32,7 @@ export const pastors: Pastor[] = [
   {
     id: "5",
     role: "Pasteur",
-    name: "Joël LENGLEGUE",
+    name: "Joseph LENGLEGUE",
     description: "Ministère et responsabilités à préciser.",
     photo: "/pasteurs/joel.jpg",
   },
@@ -60,7 +60,7 @@ export const pastors: Pastor[] = [
   {
     id: "9",
     role: "Pasteur",
-    name: "TENDREBOEGO",
+    name: " François TENDREBOEGO",
     description: "Ministère et responsabilités à préciser.",
     photo: "/pasteurs/tendreboego.jpg",
   }

@@ -1,3 +1,29 @@
+const BIBLE_BOOKS = /\(Luc|Jean|Mat|Marc|Rom|Ps|Dan|Gen|Ex|Actes|Ap|1Co|2Co|Gal|Eph|Phil|Col|1Th|2Th|1Ti|2Ti|Tit|Phm|Héb|Jac|1Pi|2Pi|1Jn|2Jn|3Jn|Jud|Nb|Dt|Jos|Jug|Rut|1Sa|2Sa|1Ro|2Ro|1Ch|2Ch|Esd|Né|Est|Job|Pr|Ec|Ca|És|Jér|Lam|Éz|Os|Joël|Am|Ab|Jon|Mi|Na|Ha|So|Ag|Za|Mal/;
+
+function parseVersePost(post: { message: string; attachments?: { data: { media?: { image?: { src: string } } }[] } }) {
+    const lines = post.message.split("\n").filter(Boolean);
+    return {
+        text: (lines.find((l: string) => l.startsWith("[")) ?? "").replace(/^\[\d+\]\s*/, "") || null,
+        reference: lines.find((l: string) => /^[A-ZÀ-Ü]/.test(l) && !l.includes("VERSET") && !l.includes("Béni") && l.trim() !== "LSG") ?? null,
+        url: lines.find((l: string) => l.startsWith("https://bible.com")) ?? null,
+        image: post.attachments?.data?.[0]?.media?.image?.src ?? null,
+    };
+}
+
+function parseStudyPost(post: { message: string }) {
+    const lines = post.message.split("\n").filter(Boolean);
+    const studyTitle = lines.find((l: string) =>
+        !l.includes("ÉTUDE") && !l.includes("(") && !l.includes("editeurbpc") && l.trim().length > 3 && !/^–/.test(l.trim())
+    ) ?? null;
+    const titleIndex = studyTitle ? lines.indexOf(studyTitle) : -1;
+    return {
+        studyTitle,
+        studyVerses: lines.slice(1, titleIndex > 0 ? titleIndex : undefined).filter((l: string) => BIBLE_BOOKS.test(l)),
+        studyParagraphs: titleIndex >= 0 ? lines.slice(titleIndex + 1).filter((l: string) => !l.includes("editeurbpc")) : [],
+        studySource: lines.find((l: string) => l.includes("editeurbpc.com")) ?? null,
+    };
+}
+
 export async function GET() {
     const token = process.env.FACEBOOK_ACCESS_TOKEN;
     const pageId = process.env.FACEBOOK_PAGE_ID;
@@ -30,30 +56,14 @@ export async function GET() {
 
         if (!post) return Response.json(fallback);
 
-        const lines = post.message.split("\n").filter(Boolean);
-        const bibleUrl = lines.find((l: string) => l.startsWith("https://bible.com")) ?? null;
-        const reference = lines.find((l: string) => /^[A-ZÀ-Ü]/.test(l) && !l.includes("VERSET") && !l.includes("Béni") && l.trim() !== "LSG") ?? null;
-        const rawText = lines.find((l: string) => l.startsWith("[")) ?? null;
-        const text = rawText ? rawText.replace(/^\[\d+\]\s*/, "") : null;
-        const image = post.attachments?.data?.[0]?.media?.image?.src ?? null;
+        const { text, reference, url, image } = parseVersePost(post);
+        const { studyTitle, studyVerses, studyParagraphs, studySource } = studyPost ? parseStudyPost(studyPost) : { studyTitle: null, studyVerses: [], studyParagraphs: [], studySource: null };
 
-        const studyLines = studyPost?.message?.split("\n").filter(Boolean) ?? [];
-        const studyTitle = studyLines.find((l: string) =>
-            !l.includes("ÉTUDE") && !l.includes("(") && !l.includes("editeurbpc") &&
-            l.trim().length > 3 && !/^–/.test(l.trim())
-        ) ?? null;
-        const studyTitleIndex = studyTitle ? studyLines.indexOf(studyTitle) : -1;
-        const studyVerses = studyLines.slice(1, studyTitleIndex > 0 ? studyTitleIndex : undefined).filter((l: string) => /\(Luc|Jean|Mat|Marc|Rom|Ps|Dan|Gen|Ex|Actes|Ap|1Co|2Co|Gal|Eph|Phil|Col|1Th|2Th|1Ti|2Ti|Tit|Phm|Héb|Jac|1Pi|2Pi|1Jn|2Jn|3Jn|Jud|Nb|Dt|Jos|Jug|Rut|1Sa|2Sa|1Ro|2Ro|1Ch|2Ch|Esd|Né|Est|Job|Pr|Ec|Ca|És|Jér|Lam|Éz|Os|Joël|Am|Ab|Jon|Mi|Na|Ha|So|Ag|Za|Mal/.test(l));
-        const studyParagraphs = studyTitleIndex >= 0 ? studyLines.slice(studyTitleIndex + 1).filter((l: string) => !l.includes("editeurbpc")) : [];
-        const studySource = studyLines.find((l: string) => l.includes("editeurbpc.com")) ?? null;
-
-        const guidePost = data.data?.find((p: { message: string }) =>
-            p.message?.toLowerCase().includes("guide annuel")
-        );
+        const guidePost = data.data?.find((p: { message: string }) => p.message?.toLowerCase().includes("guide annuel"));
         const guideLines = guidePost?.message?.split("\n").filter(Boolean) ?? [];
         const guideReading = guideLines[guideLines.length - 1] ?? fallback.guideReading;
 
-        return Response.json({ text, reference, url: bibleUrl, image, studyTitle, studyVerses, studyParagraphs, studySource, guideReading });
+        return Response.json({ text, reference, url, image, studyTitle, studyVerses, studyParagraphs, studySource, guideReading });
     } catch {
         return Response.json(fallback);
     }
