@@ -2,8 +2,8 @@ export type Video = { videoId: string; title: string; date: string; thumbnail: s
 export type VideoExt = Video & { title_raw?: string; description?: string; duration?: number; publishedAt?: string };
 
 export function extractDayFromTitle(title: string): number | null {
-    const m = title.match(/(\\d{1,2})\\s*(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)/i)
-        ?? title.match(/(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\\s+(\\d{1,2})/i);
+    const m = title.match(/(\d{1,2})\s*(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)/i)
+        ?? title.match(/(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})/i);
     if (!m) return null;
     const day = parseInt(m[1]);
     return isNaN(day) ? null : day;
@@ -13,7 +13,10 @@ export function deduplicateByDuration(videos: VideoExt[]): Video[] {
     const result: VideoExt[] = [];
     for (const v of videos) {
         const isDuplicate = result.some(r => {
-            if (r.duration && v.duration) return Math.abs(r.duration - v.duration) < 300;
+            if (r.duration && v.duration) return Math.abs(r.duration - v.duration) < 60;
+            const dayR = extractDayFromTitle(r.title);
+            const dayV = extractDayFromTitle(v.title);
+            if (dayR !== null && dayV !== null) return dayR === dayV;
             const extractKey = (t: string) => {
                 const nums = t.match(/\d+/g) ?? [];
                 return nums.filter(n => n.length <= 2 || n.length === 4).join("-");
@@ -35,8 +38,9 @@ export function fillGapsWithFacebook(ytVideos: VideoExt[], fbVideos: VideoExt[],
         if (dayA === null || dayB === null || dayA - dayB <= 1) continue;
         for (let missingDay = dayA - 1; missingDay > dayB; missingDay--) {
             const fbMatch = fbVideos.find(v => {
-                const title = (v.title_raw ?? "").toLowerCase();
-                return extractDayFromTitle(v.title_raw ?? "") === missingDay && keywords.some(k => title.includes(k.toLowerCase()));
+                const rawTitle = v.title_raw ?? v.title ?? "";
+                const title = rawTitle.toLowerCase();
+                return extractDayFromTitle(rawTitle) === missingDay && keywords.some(k => title.includes(k.toLowerCase()));
             });
             if (fbMatch) {
                 result.splice(i + 1, 0, { ...fbMatch, duration: undefined, publishedAt: undefined });

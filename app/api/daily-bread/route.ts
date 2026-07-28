@@ -56,14 +56,14 @@ export async function GET() {
 
         if (!post) return Response.json(fallback);
 
-        const { text, reference, url, image } = parseVersePost(post);
+        const { text, reference, url: bibleUrl, image } = parseVersePost(post);
         const { studyTitle, studyVerses, studyParagraphs, studySource } = studyPost ? parseStudyPost(studyPost) : { studyTitle: null, studyVerses: [], studyParagraphs: [], studySource: null };
 
         const guidePost = data.data?.find((p: { message: string }) => p.message?.toLowerCase().includes("guide annuel"));
         const guideLines = guidePost?.message?.split("\n").filter(Boolean) ?? [];
         const guideReading = guideLines[guideLines.length - 1] ?? fallback.guideReading;
 
-        return Response.json({ text, reference, url, image, studyTitle, studyVerses, studyParagraphs, studySource, guideReading });
+        return Response.json({ text, reference, url: bibleUrl, image, studyTitle, studyVerses, studyParagraphs, studySource, guideReading });
     } catch {
         return Response.json(fallback);
     }

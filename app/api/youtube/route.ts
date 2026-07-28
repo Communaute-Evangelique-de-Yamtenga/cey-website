@@ -1,4 +1,4 @@
-import { type VideoExt, deduplicateByDuration, fillGapsWithFacebook, filterVideos } from "@/lib/youtube-utils";
+import { type VideoExt, deduplicateByDuration, extractDayFromTitle, fillGapsWithFacebook, filterVideos } from "@/lib/youtube-utils";
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const BASE = "https://www.googleapis.com/youtube/v3";
@@ -89,7 +89,7 @@ export async function GET() {
             getPlaylistVideos(playlists.culte.id!, 15),
             getPlaylistVideos(playlists.louange.id!),
             getPlaylistVideos(playlists.etude.id!),
-            getPlaylistVideos(playlists.priere.id!, 20),
+            getPlaylistVideos(playlists.priere.id!, 50),
             getAllFacebookVideos(),
         ]);
 
@@ -101,7 +101,21 @@ export async function GET() {
         const culte  = deduplicateByDuration([...culteYT, ...culteFB]);
         const louange = deduplicateByDuration([...louangeYT, ...louangeFB]);
         const etude  = deduplicateByDuration([...etudeYT, ...etudeFB]);
-        const priere = deduplicateByDuration(fillGapsWithFacebook(priereYT, allFB, ["31 jours", "priere", "prière", "jeudi", "veillée"]));
+        // DEBUG 25 juillet
+        const filled = fillGapsWithFacebook(priereYT, allFB, ["31 jours", "priere", "prière", "jeudi", "veillée"]);
+        const priere = deduplicateByDuration(filled);
+        console.log("=== AFTER DEDUP ===", priere.map(v => v.title));
+        // trace dedup sur le 25
+        const v25 = filled.find(v => v.title.includes("25"));
+        if (v25) {
+            const before = filled.slice(0, filled.indexOf(v25));
+            console.log("=== CHECK 25 vs ===", before.map(r => ({
+                title: r.title,
+                durationR: r.duration, durationV: v25.duration,
+                durationMatch: r.duration && v25.duration ? Math.abs(r.duration - v25.duration) < 300 : "N/A (fallback)",
+                dayR: extractDayFromTitle(r.title), dayV: extractDayFromTitle(v25.title),
+            })));
+        }
 
         const classifiedIds = new Set([...culteFB, ...louangeFB, ...etudeFB, ...enseignementFB].map(v => v.videoId));
         const autres = allFB.filter(v => {
