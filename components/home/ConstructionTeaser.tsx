@@ -1,11 +1,14 @@
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { constructionProject, formatFcfa, percentFunded } from "@/lib/content/construction";
 
-export function ConstructionTeaser() {
+export async function ConstructionTeaser() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("temple_image").select("url, caption").order("updated_at", { ascending: false }).limit(1);
+  const image = data?.[0] ?? null;
+
   return (
     <div className="bg-blue-tint">
       <Container className="grid grid-cols-1 items-center gap-10 py-16 sm:py-[76px] lg:grid-cols-2 lg:gap-14">
@@ -20,8 +23,6 @@ export function ConstructionTeaser() {
             Chaque don, chaque sac de ciment et chaque heure de travail rapproche la
             communauté de son nouveau lieu de culte.
           </p>
-
-
           <div className="mt-7 flex flex-wrap items-center gap-3.5">
             <Button href="/projet#soutenir">Soutenir le projet</Button>
             <Link href="/projet" className="text-[13.5px] font-bold text-blue hover:text-red">
@@ -29,10 +30,15 @@ export function ConstructionTeaser() {
             </Link>
           </div>
         </div>
-        <ImagePlaceholder
-          caption="Image du nouveau temple (maquette ou chantier)"
-          className="h-[280px] sm:h-[360px]"
-        />
+        {image ? (
+          <img
+            src={image.url}
+            alt={image.caption || "Nouveau temple"}
+            className="h-[280px] sm:h-[360px] w-full object-cover rounded-2xl"
+          />
+        ) : (
+          <ImagePlaceholder caption="Image du nouveau temple (maquette ou chantier)" className="h-[280px] sm:h-[360px]" />
+        )}
       </Container>
     </div>
   );

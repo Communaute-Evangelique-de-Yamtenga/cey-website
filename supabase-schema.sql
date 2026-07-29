@@ -82,3 +82,50 @@ create policy "admin evenements" on evenements for all using (auth.role() = 'aut
 create policy "admin pasteurs" on pasteurs for all using (auth.role() = 'authenticated');
 create policy "admin construction" on construction for all using (auth.role() = 'authenticated');
 create policy "admin users" on admin_users for all using (auth.role() = 'authenticated');
+
+-- 6. Programme hebdomadaire
+create table if not exists programme (
+  id uuid primary key default gen_random_uuid(),
+  day text not null,
+  title text not null,
+  hours text not null,
+  ordre integer default 0
+);
+
+alter table programme enable row level security;
+create policy "lecture publique programme" on programme for select using (true);
+create policy "admin programme" on programme for all using (auth.role() = 'authenticated');
+
+-- 7. Image principale du temple (home)
+create table if not exists temple_image (
+  id uuid primary key default gen_random_uuid(),
+  url text not null,
+  caption text,
+  updated_at timestamptz default now()
+);
+alter table temple_image enable row level security;
+create policy "lecture publique temple_image" on temple_image for select using (true);
+create policy "admin temple_image" on temple_image for all using (auth.role() = 'authenticated');
+
+-- 8. Photos du chantier (page projet)
+create table if not exists chantier_photos (
+  id uuid primary key default gen_random_uuid(),
+  url text not null,
+  caption text,
+  ordre integer default 0,
+  created_at timestamptz default now()
+);
+alter table chantier_photos enable row level security;
+create policy "lecture publique chantier_photos" on chantier_photos for select using (true);
+create policy "admin chantier_photos" on chantier_photos for all using (auth.role() = 'authenticated');
+
+-- Données initiales
+insert into programme (day, title, hours, ordre) values
+  ('MARDI', 'Etude Biblique', '19h00 – 20h30', 1),
+  ('Mercredi', 'Prière d''intercession et de délivrance', 'A partir de 9h30', 2),
+  ('Jeudi', 'Prière d''édification et pour les besoins', '19h00-21h00', 3),
+  ('Vendredi/Samedi', 'Répétitions des chorales & activités des groupes', '19h – 21h', 4),
+  ('Dernier Vendredi du mois', 'Veillée de prière (dernier du mois)', '21h00', 5),
+  ('Dimanche', 'Culte en français', '07h30 – 10h00', 6),
+  ('Dimanche(mooré)', 'Culte en mooré', '10h15 – 12h15', 7),
+  ('1ᵉʳ Dimanche de chaque mois', 'Culte en commun', '07h30 – 11h00', 8);

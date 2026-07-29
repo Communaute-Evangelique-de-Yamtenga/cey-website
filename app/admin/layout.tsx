@@ -11,6 +11,7 @@ const nav = [
   { href: "/admin/evenements", label: "Événements", icon: "📅" },
   { href: "/admin/pasteurs", label: "Pasteurs", icon: "👤" },
   { href: "/admin/construction", label: "Construction", icon: "🏗️" },
+  { href: "/admin/programme", label: "Programme", icon: "🗓️" },
   { href: "/admin/utilisateurs", label: "Utilisateurs", icon: "👥" },
 ];
 
