@@ -7,38 +7,70 @@ export interface ContactPayload {
   nom: string;
   contact: string;
   message: string;
+  honeypot?: string; // champ caché anti-spam
 }
 
 export type ContactResult = { ok: true } | { ok: false; error: string };
 
+/** Échappe les caractères HTML pour éviter les injections XSS */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+const MAX_NOM = 100;
+const MAX_CONTACT = 150;
+const MAX_MESSAGE = 3000;
+
 export async function submitContact(data: ContactPayload): Promise<ContactResult> {
-  if (!data.nom.trim() || !data.contact.trim() || !data.message.trim()) {
+  // Anti-spam : si le champ honeypot est rempli, c'est un bot
+  if (data.honeypot) {
+    return { ok: true }; // on fait croire au bot que ça a marché
+  }
+
+  const nom = data.nom.trim();
+  const contact = data.contact.trim();
+  const message = data.message.trim();
+
+  if (!nom || !contact || !message) {
     return { ok: false, error: "Merci de remplir les trois champs." };
   }
 
-  // Sauvegarder dans Supabase
+  if (nom.length > MAX_NOM || contact.length > MAX_CONTACT || message.length > MAX_MESSAGE) {
+    return { ok: false, error: "Un ou plusieurs champs dépassent la longueur maximale autorisée." };
+  }
+
+  // Sauvegarder dans Supabase (données brutes, l'échappement est fait uniquement à l'affichage)
   const supabase = await createClient();
   const { error } = await supabase.from("messages_contact").insert({
-    nom: data.nom,
-    contact: data.contact,
-    message: data.message,
+    nom,
+    contact,
+    message,
   });
 
   if (error) return { ok: false, error: "Erreur lors de l'enregistrement du message." };
 
-  // Envoyer par email via Resend
+  // Envoyer par email via Resend (HTML échappé)
   try {
+    const safeNom = escapeHtml(nom);
+    const safeContact = escapeHtml(contact);
+    const safeMessage = escapeHtml(message).replace(/\n/g, "<br/>");
+
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "CEY Contact <onboarding@resend.dev>",
       to: process.env.CONTACT_EMAIL!,
-      subject: `Nouveau message de ${data.nom}`,
+      subject: `Nouveau message de ${safeNom}`,
       html: `
         <h2>Nouveau message de contact</h2>
-        <p><strong>Nom :</strong> ${data.nom}</p>
-        <p><strong>Contact :</strong> ${data.contact}</p>
+        <p><strong>Nom :</strong> ${safeNom}</p>
+        <p><strong>Contact :</strong> ${safeContact}</p>
         <p><strong>Message :</strong></p>
-        <p>${data.message.replace(/\n/g, "<br/>")}</p>
+        <p>${safeMessage}</p>
       `,
     });
   } catch (e) {
@@ -47,3 +79,4 @@ export async function submitContact(data: ContactPayload): Promise<ContactResult
 
   return { ok: true };
 }
+
