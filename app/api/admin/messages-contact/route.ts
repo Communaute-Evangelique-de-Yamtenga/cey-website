@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await requireAdminAuth(req);
+  if (!auth.authorized) return auth.response;
+
   const supabase = await createClient();
   const { data, error } = await supabase.from("messages_contact").select("*").order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -9,17 +13,28 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const auth = await requireAdminAuth(req);
+  if (!auth.authorized) return auth.response;
+
   const supabase = await createClient();
   const { id, lu } = await req.json();
+  if (!id) return NextResponse.json({ error: "Identifiant manquant" }, { status: 400 });
+
   const { error } = await supabase.from("messages_contact").update({ lu }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
 
 export async function DELETE(req: Request) {
+  const auth = await requireAdminAuth(req);
+  if (!auth.authorized) return auth.response;
+
   const supabase = await createClient();
   const { id } = await req.json();
+  if (!id) return NextResponse.json({ error: "Identifiant manquant" }, { status: 400 });
+
   const { error } = await supabase.from("messages_contact").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
+
