@@ -18,10 +18,12 @@ const STATUS_STYLES = {
 
 export default async function ProjetPage() {
   const supabase = await createClient();
-  const { data: photos } = await supabase
-    .from("chantier_photos")
-    .select("id, url, caption")
-    .order("ordre", { ascending: true });
+  const [{ data: chantierPhotos }, { data: templeData }] = await Promise.all([
+    supabase.from("chantier_photos").select("id, url, caption").order("ordre", { ascending: true }),
+    supabase.from("temple_image").select("url, caption").limit(1).single(),
+  ]);
+  const templeImage = templeData ?? null;
+  const photos = chantierPhotos ?? [];
 
   return (
     <div>
@@ -32,27 +34,34 @@ export default async function ProjetPage() {
       />
 
       <Container className="py-14 pb-20 sm:py-[56px]">
-        {/* Galerie photos du chantier */}
-        {photos && photos.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {photos.map((p) => (
-              <div key={p.id} className="relative overflow-hidden rounded-2xl">
-                <img src={p.url} alt={p.caption || "Photo du chantier"} className="h-[240px] sm:h-[320px] w-full object-cover" />
-                {p.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-3 py-2 text-xs text-white">
-                    {p.caption}
-                  </div>
-                )}
-              </div>
-            ))}
+        {/* Image du nouveau temple */}
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-red mb-3">Vue principale du nouveau temple</p>
+        {templeImage ? (
+          <div className="relative overflow-hidden rounded-2xl mb-8">
+            <img src={templeImage.url} alt={templeImage.caption || "Nouveau temple"} className="h-[320px] sm:h-[420px] w-full object-cover" />
+            {templeImage.caption && (
+              <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-3 py-2 text-xs text-white">{templeImage.caption}</div>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
-            <ImagePlaceholder caption="Maquette ou vue principale du nouveau temple" className="h-[240px] sm:h-[320px]" />
-            <ImagePlaceholder caption="Photo du chantier" className="h-[240px] sm:h-[320px]" />
-            <ImagePlaceholder caption="Photo du chantier" className="h-[240px] sm:h-[320px]" />
-          </div>
+          <ImagePlaceholder caption="Maquette ou vue principale du nouveau temple" className="h-[320px] sm:h-[420px] mb-8" />
         )}
+
+        {/* Photos du chantier */}
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-red mb-3">Photos du chantier</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
+          {chantierPhotos.slice(0, 3).map((p) => (
+            <div key={p.id} className="relative overflow-hidden rounded-2xl">
+              <img src={p.url} alt={p.caption || "Photo du chantier"} className="h-[200px] w-full object-cover" />
+              {p.caption && (
+                <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-3 py-2 text-xs text-white">{p.caption}</div>
+              )}
+            </div>
+          ))}
+          {chantierPhotos.length < 3 && Array.from({ length: 3 - chantierPhotos.length }).map((_, i) => (
+            <ImagePlaceholder key={i} caption="Photo du chantier" className="h-[200px]" />
+          ))}
+        </div>
 
         <div id="soutenir" />
 

@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/Notice";
 import { PageHero } from "@/components/ui/PageHero";
 import { EventCard } from "@/components/events/EventCard";
-import { upcomingEvents, weeklyProgram } from "@/lib/content/events";
 
 export const metadata: Metadata = { title: "Événements" };
 
-export default function EvenementsPage() {
+export default async function EvenementsPage() {
+  const supabase = await createClient();
+  const [{ data: weeklyProgram }, { data: upcomingEvents }] = await Promise.all([
+    supabase.from("programme").select("id, day, title, hours").order("ordre", { ascending: true }),
+    supabase.from("evenements").select("id, title, description, date, tag, tag_accent").order("date", { ascending: true }),
+  ]);
+
   return (
     <div>
       <PageHero
@@ -23,9 +29,11 @@ export default function EvenementsPage() {
             Programme standard
           </h2>
           <Card className="mt-5 overflow-hidden">
-            {weeklyProgram.map((item) => (
+            {(!weeklyProgram || weeklyProgram.length === 0) ? (
+              <p className="text-sm text-ink-faint p-5">Aucun programme pour le moment.</p>
+            ) : weeklyProgram.map((item) => (
               <div
-                key={item.day}
+                key={item.id}
                 className="flex items-center gap-20 border-t border-border-soft px-[22px] py-4 first:border-t-0"
               >
                 <span className="w-[86px] flex-none text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-red">
@@ -52,8 +60,17 @@ export default function EvenementsPage() {
             À venir
           </h2>
           <div className="mt-5 flex flex-col gap-4">
-            {upcomingEvents.map((event) => (
-              <EventCard key={event.title} event={event} />
+            {(!upcomingEvents || upcomingEvents.length === 0) ? (
+              <p className="text-sm text-ink-faint">Aucun événement à venir.</p>
+            ) : upcomingEvents.map((event) => (
+              <EventCard key={event.id} event={{
+                day: new Date(event.date).getDate().toString(),
+                month: new Date(event.date).toLocaleDateString("fr-FR", { month: "short" }).toUpperCase(),
+                title: event.title,
+                description: event.description,
+                tag: event.tag,
+                tagAccent: event.tag_accent,
+              }} />
             ))}
           </div>
         </div>
