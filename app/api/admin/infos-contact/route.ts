@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/supabase/admin-auth";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authResponse = await requireAdminAuth(req);
+  if (!authResponse.authorized) return authResponse.response;
   const supabase = await createClient();
   const { data, error } = await supabase.from("infos_contact").select("*").limit(1).single();
   if (error) return NextResponse.json(null);
@@ -9,6 +12,8 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const authResponse = await requireAdminAuth(req);
+  if (!authResponse.authorized) return authResponse.response;
   const supabase = await createClient();
   const { id, ...body } = await req.json();
   const { data, error } = await supabase.from("infos_contact").update(body).eq("id", id).select().single();

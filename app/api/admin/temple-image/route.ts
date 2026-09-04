@@ -1,13 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/supabase/admin-auth";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authResponse = await requireAdminAuth(req);
+  if (!authResponse.authorized) return authResponse.response;
   const supabase = await createClient();
   const { data } = await supabase.from("temple_image").select("*").order("updated_at", { ascending: false }).limit(1);
   return NextResponse.json(data?.[0] ?? null);
 }
 
 export async function POST(req: Request) {
+  const authResponse = await requireAdminAuth(req);
+  if (!authResponse.authorized) return authResponse.response;
   const supabase = await createClient();
   const body = await req.json();
   // On garde une seule image : on supprime l'ancienne avant d'insérer
@@ -17,7 +22,9 @@ export async function POST(req: Request) {
   return NextResponse.json(data);
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
+  const authResponse = await requireAdminAuth(req);
+  if (!authResponse.authorized) return authResponse.response;
   const supabase = await createClient();
   await supabase.from("temple_image").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   return NextResponse.json({ success: true });
