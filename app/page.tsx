@@ -9,8 +9,8 @@ import { StructuresGroupsOverview } from "@/components/home/StructuresGroupsOver
 import { PastorsTeaser } from "@/components/home/PastorsTeaser";
 import { LocationSection } from "@/components/home/LocationSection";
 
-// Revalidate periodically so the daily verse rotates without a full rebuild.
-export const revalidate = 3600;
+// Revalidate toutes les 60s pour que les annonces/données dynamiques s'actualisent.
+export const revalidate = 60;
 
 export default function Home() {
   return (

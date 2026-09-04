@@ -8,6 +8,7 @@ export function ContactForm() {
   const [nom, setNom] = useState("");
   const [contact, setContact] = useState("");
   const [message, setMessage] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -15,7 +16,7 @@ export function ContactForm() {
   function handleSubmit() {
     setError("");
     startTransition(async () => {
-      const result = await submitContact({ nom, contact, message });
+      const result = await submitContact({ nom, contact, message, honeypot });
       if (result.ok) setDone(true);
       else setError(result.error);
     });
@@ -47,6 +48,15 @@ export function ContactForm() {
   return (
     <div>
       <h2 className="font-serif text-2xl font-semibold tracking-[-0.01em] text-ink">Écrivez-nous</h2>
+      {/* Honeypot anti-spam : champ invisible pour les humains */}
+        <input
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
+        />
       <div className="mt-[22px] grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input
           value={nom}
@@ -55,6 +65,7 @@ export function ContactForm() {
             setError("");
           }}
           placeholder="Votre nom"
+          maxLength={100}
           className="w-full rounded-[10px] border-[1.5px] border-border-strong bg-white px-3.5 py-3.5 font-sans text-sm text-ink outline-none focus:border-blue"
         />
         <input
@@ -64,6 +75,7 @@ export function ContactForm() {
             setError("");
           }}
           placeholder="Téléphone ou e-mail"
+          maxLength={150}
           className="w-full rounded-[10px] border-[1.5px] border-border-strong bg-white px-3.5 py-3.5 font-sans text-sm text-ink outline-none focus:border-blue"
         />
       </div>
@@ -75,6 +87,7 @@ export function ContactForm() {
         }}
         placeholder="Votre message ou demande de prière…"
         rows={6}
+        maxLength={3000}
         className="mt-3 w-full resize-y rounded-[10px] border-[1.5px] border-border-strong bg-white px-3.5 py-3.5 font-sans text-sm text-ink outline-none focus:border-blue"
       />
       {error ? <div className="mt-3 text-[13px] font-semibold text-red">{error}</div> : null}

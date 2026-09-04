@@ -2,9 +2,15 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { weeklyProgram } from "@/lib/content/events";
+import { createClient } from "@/lib/supabase/server";
 
-export function WeeklyProgram() {
+export async function WeeklyProgram() {
+  const supabase = await createClient();
+  const { data: weeklyProgram } = await supabase
+    .from("programme")
+    .select("id, day, title, hours")
+    .order("ordre", { ascending: true });
+
   return (
     <Container className="py-16 sm:py-[76px]">
       <div className="flex flex-wrap items-end justify-between gap-5">
@@ -17,8 +23,10 @@ export function WeeklyProgram() {
         </Link>
       </div>
       <div className="mt-7 grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
-        {weeklyProgram.map((item) => (
-          <Card key={item.day} className="p-[22px]">
+        {(!weeklyProgram || weeklyProgram.length === 0) ? (
+          <p className="text-sm text-ink-faint col-span-4">Aucun programme pour le moment.</p>
+        ) : weeklyProgram.map((item) => (
+          <Card key={item.id} className="p-[22px]">
             <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red">
               {item.day}
             </div>
