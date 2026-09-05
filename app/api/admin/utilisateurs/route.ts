@@ -24,8 +24,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const { email, password, role } = await req.json();
-  if (!email || !password || !role) {
+  const { email, role } = await req.json();
+  if (!email || !role) {
     return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
   }
 
@@ -45,16 +45,22 @@ export async function POST(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const { data: authData, error: authError } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
+  const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation`,
   });
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
   const supabase = await createClient();
-  await supabase.from("admin_users").insert({ id: authData.user.id, email, role });
-  return NextResponse.json({ success: true });
+  const { error: insertError } = await supabase.from("admin_users").insert({ id: authData.user.id, email, role });
+  if (insertError) {
+    await admin.auth.admin.deleteUser(authData.user.id);
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: "Invitation envoyée. Le compte sera activé après confirmation de l'email.",
+  });
 }
 
 export async function DELETE(req: Request) {
