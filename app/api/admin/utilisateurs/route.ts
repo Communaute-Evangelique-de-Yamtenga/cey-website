@@ -26,16 +26,28 @@ export async function GET(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const users = await Promise.all(data.map(async (user) => {
-    const { data: authData } = await admin.auth.admin.getUserById(user.id);
+  const authUsers = [];
+  let page = 1;
+  const perPage = 1000;
+  while (true) {
+    const { data: authData, error: authError } = await admin.auth.admin.listUsers({ page, perPage });
+    if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
+    authUsers.push(...authData.users);
+    if (authData.users.length < perPage) break;
+    page += 1;
+  }
+
+  const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
+  const users = data.map((user) => {
+    const authUser = authUsersById.get(user.id);
     return {
       ...user,
-      username: authData.user?.user_metadata?.display_name || user.email.split("@")[0],
-      status: authData.user?.email_confirmed_at || authData.user?.last_sign_in_at
+      username: authUser?.user_metadata?.display_name || user.email.split("@")[0],
+      status: authUser?.email_confirmed_at || authUser?.last_sign_in_at
         ? "actif"
         : "en_attente",
     };
-  }));
+  });
 
   return NextResponse.json(users);
 }
