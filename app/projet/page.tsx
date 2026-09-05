@@ -50,7 +50,7 @@ export default async function ProjetPage() {
         {/* Photos du chantier */}
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-red mb-3">Photos du chantier</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
-          {chantierPhotos.slice(0, 3).map((p) => (
+          {photos.slice(0, 3).map((p) => (
             <div key={p.id} className="relative overflow-hidden rounded-2xl">
               <img src={p.url} alt={p.caption || "Photo du chantier"} className="h-[200px] w-full object-cover" />
               {p.caption && (
@@ -58,7 +58,7 @@ export default async function ProjetPage() {
               )}
             </div>
           ))}
-          {chantierPhotos.length < 3 && Array.from({ length: 3 - chantierPhotos.length }).map((_, i) => (
+          {photos.length < 3 && Array.from({ length: 3 - photos.length }).map((_, i) => (
             <ImagePlaceholder key={i} caption="Photo du chantier" className="h-[200px]" />
           ))}
         </div>
