@@ -16,10 +16,10 @@ export async function POST(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
 
-  // Seul un super_admin peut créer de nouveaux comptes
-  if (auth.role !== "super_admin") {
+  // Les admins peuvent créer des comptes, mais seul un super_admin peut créer un super_admin.
+  if (auth.role !== "super_admin" && auth.role !== "admin") {
     return NextResponse.json(
-      { error: "Droits insuffisants. Seul un super-administrateur peut créer des comptes." },
+      { error: "Droits insuffisants. Seul un admin ou un super-administrateur peut créer des comptes." },
       { status: 403 }
     );
   }
@@ -27,6 +27,17 @@ export async function POST(req: Request) {
   const { email, password, role } = await req.json();
   if (!email || !password || !role) {
     return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
+  }
+
+  const allowedRoles = ["admin", "editeur", "lecteur"];
+  if (role === "super_admin" && auth.role !== "super_admin") {
+    return NextResponse.json(
+      { error: "Un Admin ne peut pas créer un compte Super Admin." },
+      { status: 403 }
+    );
+  }
+  if (!allowedRoles.includes(role) && role !== "super_admin") {
+    return NextResponse.json({ error: "Rôle invalide" }, { status: 400 });
   }
 
   const { createClient: createAdmin } = await import("@supabase/supabase-js");
