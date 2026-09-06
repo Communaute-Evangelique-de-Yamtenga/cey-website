@@ -1,4 +1,4 @@
-import { type VideoExt, deduplicateByDuration, extractDayFromTitle, fillGapsWithFacebook, filterVideos } from "@/lib/youtube-utils";
+import { type VideoExt, deduplicateByDuration, extractDayFromTitle, fillGapsWithFacebook, filterVideos, sortVideosByTitleDate } from "@/lib/youtube-utils";
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const BASE = "https://www.googleapis.com/youtube/v3";
@@ -16,14 +16,19 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
     const pageId = process.env.FACEBOOK_PAGE_ID;
     const fields = "title,description,created_time,thumbnails,permalink_url";
     const base = `https://graph.facebook.com/${pageId}/videos?fields=${fields}&limit=100&access_token=${token}`;
+    const liveBase = `https://graph.facebook.com/${pageId}/live_videos?fields=${fields}&limit=100&access_token=${token}`;
     const opts = { next: { revalidate: 3600 } };
 
+    if (!token || !pageId) throw new Error("Configuration Facebook manquante");
+
     const [resLive, resUploaded, resArchive] = await Promise.all([
-        fetch(`${base}&type=live`, opts),
-        fetch(`${base}&type=uploaded`, opts),
-        fetch(`${base}&type=live_archive`, opts),
+        fetch(liveBase, opts),
+        fetch(`${base}&type=UPLOADED`, opts),
+        fetch(`${base}&type=TAGGED`, opts),
     ]);
     const [dataLive, dataUploaded, dataArchive] = await Promise.all([resLive.json(), resUploaded.json(), resArchive.json()]);
+    const facebookError = dataUploaded.error ?? dataArchive.error;
+    if (facebookError) throw new Error(`Facebook: ${facebookError.message ?? "requête refusée"}`);
 
     const seen = new Set<string>();
     return [...(dataLive.data ?? []), ...(dataUploaded.data ?? []), ...(dataArchive.data ?? [])]
@@ -48,6 +53,7 @@ async function getVideoDetails(videoIds: string[]): Promise<Record<string, { dat
     if (!videoIds.length) return {};
     const res = await fetch(`${BASE}/videos?part=snippet,contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`, { next: { revalidate: 3600 } });
     const data = await res.json();
+    if (data.error) throw new Error(`YouTube: ${data.error.message ?? "requête refusée"}`);
     const map: Record<string, { date: string; duration: number; publishedAt: string }> = {};
     for (const item of data.items ?? []) {
         const m = (item.contentDetails?.duration ?? "").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -63,11 +69,12 @@ async function getVideoDetails(videoIds: string[]): Promise<Record<string, { dat
 async function getPlaylistVideos(playlistId: string, maxResults = 12): Promise<VideoExt[]> {
     const res = await fetch(`${BASE}/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=${maxResults}&key=${API_KEY}`, { next: { revalidate: 3600 } });
     const data = await res.json();
+    if (data.error) throw new Error(`YouTube: ${data.error.message ?? "requête refusée"}`);
     const items = data.items ?? [];
     const videoIds = items.map((item: { snippet: { resourceId: { videoId: string } } }) => item.snippet.resourceId.videoId);
     const details = await getVideoDetails(videoIds);
     return items
-        .map((item: { snippet: { title: string; thumbnails: { medium: { url: string } }; resourceId: { videoId: string } } }) => {
+        .map((item: { snippet: { title: string; thumbnails?: Partial<Record<"medium" | "high" | "default", { url: string }>>; resourceId: { videoId: string } } }) => {
             const id = item.snippet.resourceId.videoId;
             return {
                 videoId: id,
@@ -75,7 +82,10 @@ async function getPlaylistVideos(playlistId: string, maxResults = 12): Promise<V
                 date: details[id]?.date ?? "",
                 duration: details[id]?.duration ?? 0,
                 publishedAt: details[id]?.publishedAt ?? "",
-                thumbnail: item.snippet.thumbnails.medium.url,
+                thumbnail: item.snippet.thumbnails?.medium?.url
+                    ?? item.snippet.thumbnails?.high?.url
+                    ?? item.snippet.thumbnails?.default?.url
+                    ?? "",
                 url: `https://www.youtube.com/watch?v=${id}`,
                 source: "youtube",
             };
@@ -98,12 +108,12 @@ export async function GET() {
         const etudeFB       = filterVideos(allFB, ["etude biblique", "étude biblique"], [], true, Math.max(0, 3 - etudeYT.length));
         const enseignementFB = filterVideos(allFB, ["enseignement"], ["priere", "prière", "31 jours"], true, 3);
 
-        const culte  = deduplicateByDuration([...culteYT, ...culteFB]);
-        const louange = deduplicateByDuration([...louangeYT, ...louangeFB]);
-        const etude  = deduplicateByDuration([...etudeYT, ...etudeFB]);
+        const culte  = sortVideosByTitleDate(deduplicateByDuration([...culteYT, ...culteFB]));
+        const louange = sortVideosByTitleDate(deduplicateByDuration([...louangeYT, ...louangeFB]));
+        const etude  = sortVideosByTitleDate(deduplicateByDuration([...etudeYT, ...etudeFB]));
         // DEBUG 25 juillet
         const filled = fillGapsWithFacebook(priereYT, allFB, ["31 jours", "priere", "prière", "jeudi", "veillée"]);
-        const priere = deduplicateByDuration(filled);
+        const priere = sortVideosByTitleDate(deduplicateByDuration(filled));
         console.log("=== AFTER DEDUP ===", priere.map(v => v.title));
         // trace dedup sur le 25
         const v25 = filled.find(v => v.title.includes("25"));
@@ -124,8 +134,9 @@ export async function GET() {
             return !["prière", "priere", "31 jours", "jeudi", "veillée", "culte", "dimanche", "étude", "etude", "biblique", "louange", "adoration", "chorale"].some(k => t.includes(k));
         }).slice(0, 6);
 
-        return Response.json({ teaser: [culte[0], louange[0], etude[0]].filter(Boolean), culte, louange, etude, priere, enseignement: enseignementFB, autres });
-    } catch {
-        return Response.json({ error: "Erreur serveur" }, { status: 500 });
+        return Response.json({ teaser: [culte[0], louange[0], etude[0]].filter(Boolean), culte, louange, etude, priere, enseignement: sortVideosByTitleDate(enseignementFB), autres: sortVideosByTitleDate(autres) });
+    } catch (error) {
+        console.error("Media API error", error);
+        return Response.json({ error: "Impossible de charger les vidéos" }, { status: 502 });
     }
 }

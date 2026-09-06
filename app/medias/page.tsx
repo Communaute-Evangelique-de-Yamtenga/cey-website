@@ -26,8 +26,9 @@ export default async function MediasPage({
   const { categorie } = await searchParams;
   const active = categorie && (mediaCategories as readonly string[]).includes(categorie) ? categorie : ALL;
 
-  const res = await fetch("http://localhost:3000/api/youtube", { cache: "no-store" });
-  const ytData = await res.json();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+  const res = await fetch(`${siteUrl}/api/youtube`, { cache: "no-store" });
+  const ytData = res.ok ? await res.json() : { error: `API médias indisponible (${res.status})` };
 
   const ytItems: MediaItem[] = [
     ...(ytData.culte ?? []).map((v: YTVideo) => ytToMediaItem(v, "Cultes de dimanche")),
