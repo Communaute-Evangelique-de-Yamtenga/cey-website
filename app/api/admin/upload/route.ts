@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/supabase/admin-auth";
+import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
@@ -11,6 +11,8 @@ cloudinary.config({
 export async function POST(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "write");
+  if (permissionResponse) return permissionResponse;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;

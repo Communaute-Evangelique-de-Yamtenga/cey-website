@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/supabase/admin-auth";
+import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
 export async function GET(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "read");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data } = await supabase.from("temple_image").select("*").order("updated_at", { ascending: false }).limit(1);
   return NextResponse.json(data?.[0] ?? null);
@@ -13,6 +15,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "write");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const body = await req.json();
   // On garde une seule image : on supprime l'ancienne avant d'insérer
@@ -25,6 +29,8 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "deleteContent");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   await supabase.from("temple_image").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   return NextResponse.json({ success: true });

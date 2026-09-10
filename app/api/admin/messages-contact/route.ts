@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireAdminAuth } from "@/lib/supabase/admin-auth";
+import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
+  const permissionResponse = requireAdminPermission(auth, "read");
+  if (permissionResponse) return permissionResponse;
 
   const supabase = await createClient();
   const { data, error } = await supabase.from("messages_contact").select("*").order("created_at", { ascending: false });
@@ -15,6 +17,8 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
+  const permissionResponse = requireAdminPermission(auth, "write");
+  if (permissionResponse) return permissionResponse;
 
   const supabase = await createClient();
   const { id, lu } = await req.json();
@@ -28,6 +32,8 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
+  const permissionResponse = requireAdminPermission(auth, "deleteContent");
+  if (permissionResponse) return permissionResponse;
 
   const supabase = await createClient();
   const { id } = await req.json();

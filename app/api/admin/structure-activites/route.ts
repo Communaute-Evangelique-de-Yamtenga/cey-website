@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/supabase/admin-auth";
+import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
 export async function GET(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "read");
+  if (permissionResponse) return permissionResponse;
   const { searchParams } = new URL(req.url);
   const slug = searchParams.get("slug");
   const supabase = await createClient();
@@ -18,6 +20,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "write");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const body = await req.json();
   const { data, error } = await supabase.from("structure_activites").insert(body).select().single();
@@ -28,6 +32,8 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "write");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { id, ...body } = await req.json();
   const { data, error } = await supabase.from("structure_activites").update(body).eq("id", id).select().single();
@@ -38,6 +44,8 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "deleteContent");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { id } = await req.json();
   const { error } = await supabase.from("structure_activites").delete().eq("id", id);
