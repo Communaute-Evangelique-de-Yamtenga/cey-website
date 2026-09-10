@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/supabase/admin-auth";
+import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
 export async function GET(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "read");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data, error } = await supabase.from("annonces").select("*").order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -14,6 +16,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "write");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const body = await req.json();
   const { data, error } = await supabase.from("annonces").insert(body).select().single();
@@ -24,6 +28,8 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "deleteContent");
+  if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { id } = await req.json();
   const { error } = await supabase.from("annonces").delete().eq("id", id);

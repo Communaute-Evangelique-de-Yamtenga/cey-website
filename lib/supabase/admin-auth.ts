@@ -18,6 +18,27 @@ export interface AdminAuthFailure {
 
 export type AdminAuthResult = AdminAuthSuccess | AdminAuthFailure;
 
+export type AdminPermission = "read" | "write" | "deleteContent" | "manageUsers";
+
+const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
+  lecteur: ["read"],
+  editeur: ["read", "write"],
+  admin: ["read", "write", "deleteContent", "manageUsers"],
+  super_admin: ["read", "write", "deleteContent", "manageUsers"],
+};
+
+export function requireAdminPermission(
+  auth: AdminAuthSuccess,
+  permission: AdminPermission
+): NextResponse | null {
+  if (ROLE_PERMISSIONS[auth.role]?.includes(permission)) return null;
+
+  return NextResponse.json(
+    { error: "Droits insuffisants pour cette opération" },
+    { status: 403 }
+  );
+}
+
 /**
  * Vérifie l'authentification et les droits administrateur.
  * Supporte :
