@@ -20,7 +20,24 @@ export async function POST(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const body = await req.json();
-  const { data, error } = await supabase.from("annonces").insert(body).select().single();
+  if (
+    !body ||
+    typeof body.text !== "string" ||
+    body.text.trim().length === 0 ||
+    body.text.length > 5000 ||
+    typeof body.date !== "string" ||
+    body.date.trim().length === 0 ||
+    body.date.length > 100 ||
+    typeof body.active !== "boolean"
+  ) {
+    return NextResponse.json({ error: "Données d'annonce invalides" }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from("annonces")
+    .insert({ text: body.text.trim(), date: body.date.trim(), active: body.active })
+    .select()
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
