@@ -2,6 +2,33 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
+function isOptionalHttpsUrl(value: unknown): value is string {
+  if (value === "") return true;
+  if (typeof value !== "string") return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function validateContact(body: unknown) {
+  if (!body || typeof body !== "object") return null;
+  const contact = body as Record<string, unknown>;
+  const fields = ["adresse", "telephone", "horaires"];
+  const links = ["facebook", "youtube", "tiktok"];
+
+  if (
+    !fields.every((field) => typeof contact[field] === "string" && (contact[field] as string).length <= 2000) ||
+    !links.every((field) => isOptionalHttpsUrl(contact[field]) && (contact[field] as string).length <= 500)
+  ) return null;
+
+  return Object.fromEntries([
+    ...fields.map((field) => [field, (contact[field] as string).trim()]),
+    ...links.map((field) => [field, (contact[field] as string).trim()]),
+  ]);
+}
+
 export async function GET(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
@@ -20,7 +47,11 @@ export async function PUT(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { id, ...body } = await req.json();
-  const { data, error } = await supabase.from("infos_contact").update(body).eq("id", id).select().single();
+  const contact = validateContact(body);
+  if (!contact || typeof id !== "string" || !id) {
+    return NextResponse.json({ error: "Données de contact invalides" }, { status: 400 });
+  }
+  const { data, error } = await supabase.from("infos_contact").update(contact).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
