@@ -17,8 +17,17 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const folder = (formData.get("folder") as string) || "cey";
+    const isAllowedFolder = [
+      "cey/temple",
+      "cey/chantier",
+      "cey/hero",
+      "cey/pasteurs",
+    ].includes(folder) || /^cey\/structures\/[a-z0-9-]+$/.test(folder);
 
     if (!file) return NextResponse.json({ error: "Aucun fichier" }, { status: 400 });
+    if (!isAllowedFolder) {
+      return NextResponse.json({ error: "Dossier d'upload non autorisé" }, { status: 400 });
+    }
 
     const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
     if (file.size > MAX_SIZE) {
