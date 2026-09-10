@@ -21,17 +21,34 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
 
     if (!token || !pageId) throw new Error("Configuration Facebook manquante");
 
-    const [resLive, resUploaded, resArchive] = await Promise.all([
-        fetch(liveBase, opts),
-        fetch(`${base}&type=UPLOADED`, opts),
-        fetch(`${base}&type=TAGGED`, opts),
+    const fetchJson = async (url: string) => {
+        try {
+            const res = await fetch(url, opts);
+            if (!res.ok) {
+                const payload = await res.json().catch(() => ({}));
+                return { error: { message: payload?.error?.message ?? `Erreur Facebook (${res.status})` } };
+            }
+            return await res.json();
+        } catch (error) {
+            return { error: { message: error instanceof Error ? error.message : "requête refusée" } };
+        }
+    };
+
+    const [dataLive, dataUploaded, dataArchive] = await Promise.all([
+        fetchJson(liveBase),
+        fetchJson(`${base}&type=UPLOADED`),
+        fetchJson(`${base}&type=TAGGED`),
     ]);
-    const [dataLive, dataUploaded, dataArchive] = await Promise.all([resLive.json(), resUploaded.json(), resArchive.json()]);
-    const facebookError = dataUploaded.error ?? dataArchive.error;
-    if (facebookError) throw new Error(`Facebook: ${facebookError.message ?? "requête refusée"}`);
+
+    const validSources = [dataLive, dataUploaded, dataArchive].filter((source) => !source?.error);
+
+    if (validSources.length === 0) {
+        const firstError = [dataLive, dataUploaded, dataArchive].find((source) => source?.error)?.error;
+        throw new Error(`Facebook: ${firstError?.message ?? "requête refusée"}`);
+    }
 
     const seen = new Set<string>();
-    return [...(dataLive.data ?? []), ...(dataUploaded.data ?? []), ...(dataArchive.data ?? [])]
+    return [...(dataLive?.data ?? []), ...(dataUploaded?.data ?? []), ...(dataArchive?.data ?? [])]
         .filter(v => {
             if (seen.has(v.id) || (!v.title && !v.description)) return false;
             seen.add(v.id);
@@ -67,10 +84,14 @@ async function getVideoDetails(videoIds: string[]): Promise<Record<string, { dat
 }
 
 async function getPlaylistVideos(playlistId: string, maxResults = 12): Promise<VideoExt[]> {
-    const res = await fetch(`${BASE}/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=${maxResults}&key=${API_KEY}`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${BASE}/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${API_KEY}`, { next: { revalidate: 3600 } });
     const data = await res.json();
     if (data.error) throw new Error(`YouTube: ${data.error.message ?? "requête refusée"}`);
-    const items = data.items ?? [];
+    const items = (data.items ?? []).filter((item: { snippet?: { title?: string; resourceId?: { videoId?: string } } }) => {
+        const title = item.snippet?.title?.trim().toLowerCase() ?? "";
+        const videoId = item.snippet?.resourceId?.videoId;
+        return Boolean(videoId) && title !== "deleted video" && title !== "private video";
+    }).slice(0, maxResults);
     const videoIds = items.map((item: { snippet: { resourceId: { videoId: string } } }) => item.snippet.resourceId.videoId);
     const details = await getVideoDetails(videoIds);
     return items
