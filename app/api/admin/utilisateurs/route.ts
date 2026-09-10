@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireAdminAuth } from "@/lib/supabase/admin-auth";
+import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
 
 async function verifyAdminPassword(email: string | undefined, password: unknown) {
@@ -16,6 +16,8 @@ async function verifyAdminPassword(email: string | undefined, password: unknown)
 export async function GET(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
+  const permissionResponse = requireAdminPermission(auth, "manageUsers");
+  if (permissionResponse) return permissionResponse;
 
   const supabase = await createClient();
   const { data, error } = await supabase.from("admin_users").select("*").order("created_at", { ascending: false });
@@ -55,6 +57,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
+  const permissionResponse = requireAdminPermission(auth, "manageUsers");
+  if (permissionResponse) return permissionResponse;
 
   // Les admins peuvent créer des comptes, mais seul un super_admin peut créer un super_admin.
   if (auth.role !== "super_admin" && auth.role !== "admin") {
@@ -106,6 +110,8 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
+  const permissionResponse = requireAdminPermission(auth, "manageUsers");
+  if (permissionResponse) return permissionResponse;
 
   if (auth.role !== "super_admin") {
     return NextResponse.json(
@@ -144,6 +150,8 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
+  const permissionResponse = requireAdminPermission(auth, "manageUsers");
+  if (permissionResponse) return permissionResponse;
 
   if (auth.role !== "super_admin" && auth.role !== "admin") {
     return NextResponse.json(
