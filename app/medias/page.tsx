@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { PageHero } from "@/components/ui/PageHero";
-import { MediaCardLarge, MediaCardEmpty } from "@/components/media/MediaCard";
+import { MediaCardLarge } from "@/components/media/MediaCard";
 import { cn } from "@/lib/cn";
 import { mediaCategories, mediaItems } from "@/lib/content/media";
 import type { MediaItem } from "@/lib/types";
@@ -26,8 +26,9 @@ export default async function MediasPage({
   const { categorie } = await searchParams;
   const active = categorie && (mediaCategories as readonly string[]).includes(categorie) ? categorie : ALL;
 
-  const res = await fetch("http://localhost:3000/api/youtube", { cache: "no-store" });
-  const ytData = await res.json();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+  const res = await fetch(`${siteUrl}/api/youtube`, { cache: "no-store" });
+  const ytData = res.ok ? await res.json() : { error: `API médias indisponible (${res.status})` };
 
   const ytItems: MediaItem[] = [
     ...(ytData.culte ?? []).map((v: YTVideo) => ytToMediaItem(v, "Cultes de dimanche")),
@@ -93,16 +94,15 @@ export default async function MediasPage({
               { label: "Autres", key: "Autres" },
             ].map(({ label, key }) => {
               const sectionItems = allItems.filter((m) => m.category === key);
+              if (sectionItems.length === 0) return null;
+
               const displayItems = sectionItems.slice(0, key === "Autres" ? 6 : 3);
-              const fillEmpty = ["Louanges & Adoration", "Études bibliques", "Enseignements"].includes(key);
-              const emptyCount = fillEmpty ? Math.max(0, 3 - displayItems.length) : 0;
-              if (displayItems.length === 0 && emptyCount === 0) return null;
+
               return (
                 <div key={label}>
                   <h2 className="mb-5 font-serif text-[20px] font-semibold text-ink">{label}</h2>
                   <div className="grid grid-cols-1 gap-[26px] sm:grid-cols-2 lg:grid-cols-3">
                     {displayItems.map((item) => <MediaCardLarge key={item.videoId ?? item.title} item={item} />)}
-                    {Array.from({ length: emptyCount }).map((_, i) => <MediaCardEmpty key={`empty-${i}`} category={key} />)}
                   </div>
                   <div className="mt-5 text-right">
                     <Link href={`/medias?categorie=${encodeURIComponent(key)}`} className="text-[12.5px] font-bold text-ink-muted hover:text-ink">

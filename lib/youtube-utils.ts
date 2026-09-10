@@ -1,6 +1,41 @@
 export type Video = { videoId: string; title: string; date: string; thumbnail: string; url: string; source?: string };
 export type VideoExt = Video & { title_raw?: string; description?: string; duration?: number; publishedAt?: string };
 
+const MONTHS: Record<string, number> = {
+    janvier: 0,
+    février: 1,
+    fevrier: 1,
+    mars: 2,
+    avril: 3,
+    mai: 4,
+    juin: 5,
+    juillet: 6,
+    août: 7,
+    aout: 7,
+    septembre: 8,
+    octobre: 9,
+    novembre: 10,
+    décembre: 11,
+    decembre: 11,
+};
+
+export function extractDateFromTitle(title: string): number | null {
+    const match = title.match(/\b(\d{1,2})\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)(?:\s+(\d{4}))?/i);
+    if (!match) return null;
+    const month = MONTHS[match[2].toLowerCase()];
+    const year = Number(match[3] ?? new Date().getFullYear());
+    const date = new Date(year, month, Number(match[1]));
+    return Number.isNaN(date.getTime()) ? null : date.getTime();
+}
+
+export function sortVideosByTitleDate(videos: VideoExt[]): VideoExt[] {
+    return [...videos].sort((a, b) => {
+        const dateA = extractDateFromTitle(a.title) ?? new Date(a.publishedAt ?? 0).getTime();
+        const dateB = extractDateFromTitle(b.title) ?? new Date(b.publishedAt ?? 0).getTime();
+        return dateB - dateA;
+    });
+}
+
 export function extractDayFromTitle(title: string): number | null {
     const m = title.match(/(\d{1,2})\s*(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)/i)
         ?? title.match(/(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})/i);

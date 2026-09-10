@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Container } from "@/components/ui/Container";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
@@ -38,7 +39,7 @@ export default async function ProjetPage() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-red mb-3">Vue principale du nouveau temple</p>
         {templeImage ? (
           <div className="relative overflow-hidden rounded-2xl mb-8">
-            <img src={templeImage.url} alt={templeImage.caption || "Nouveau temple"} className="h-[320px] sm:h-[420px] w-full object-cover" />
+            <Image src={templeImage.url} alt={templeImage.caption || "Nouveau temple"} width={1200} height={420} className="h-[320px] sm:h-[420px] w-full object-cover" />
             {templeImage.caption && (
               <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-3 py-2 text-xs text-white">{templeImage.caption}</div>
             )}
@@ -50,15 +51,15 @@ export default async function ProjetPage() {
         {/* Photos du chantier */}
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-red mb-3">Photos du chantier</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
-          {chantierPhotos.slice(0, 3).map((p) => (
+          {photos.slice(0, 3).map((p) => (
             <div key={p.id} className="relative overflow-hidden rounded-2xl">
-              <img src={p.url} alt={p.caption || "Photo du chantier"} className="h-[200px] w-full object-cover" />
+              <Image src={p.url} alt={p.caption || "Photo du chantier"} width={600} height={200} className="h-[200px] w-full object-cover" />
               {p.caption && (
                 <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-3 py-2 text-xs text-white">{p.caption}</div>
               )}
             </div>
           ))}
-          {chantierPhotos.length < 3 && Array.from({ length: 3 - chantierPhotos.length }).map((_, i) => (
+          {photos.length < 3 && Array.from({ length: 3 - photos.length }).map((_, i) => (
             <ImagePlaceholder key={i} caption="Photo du chantier" className="h-[200px]" />
           ))}
         </div>
