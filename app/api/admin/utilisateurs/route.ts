@@ -2,17 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
 
-async function verifyAdminPassword(email: string | undefined, password: unknown) {
-  if (!email || typeof password !== "string" || !password) return false;
-  const { createClient: createAuthClient } = await import("@supabase/supabase-js");
-  const authClient = createAuthClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-  const { data, error } = await authClient.auth.signInWithPassword({ email, password });
-  return !error && Boolean(data.user);
-}
-
 export async function GET(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
@@ -120,9 +109,9 @@ export async function DELETE(req: Request) {
     );
   }
 
-  const { id, password } = await req.json();
-  if (!id || !password) {
-    return NextResponse.json({ error: "Identifiant et mot de passe requis" }, { status: 400 });
+  const { id } = await req.json();
+  if (!id) {
+    return NextResponse.json({ error: "Identifiant requis" }, { status: 400 });
   }
 
   if (id === auth.user.id) {
@@ -130,10 +119,6 @@ export async function DELETE(req: Request) {
       { error: "Vous ne pouvez pas supprimer votre propre compte administrateur." },
       { status: 400 }
     );
-  }
-
-  if (!(await verifyAdminPassword(auth.user.email, password))) {
-    return NextResponse.json({ error: "Mot de passe incorrect" }, { status: 401 });
   }
 
   const { createClient: createAdmin } = await import("@supabase/supabase-js");
@@ -160,19 +145,16 @@ export async function PATCH(req: Request) {
     );
   }
 
-  const { id, role, password } = await req.json();
+  const { id, role } = await req.json();
   const allowedRoles = ["admin", "editeur", "lecteur"];
-  if (!id || !role || !password || (!allowedRoles.includes(role) && role !== "super_admin")) {
-    return NextResponse.json({ error: "Identifiant, rôle et mot de passe requis" }, { status: 400 });
+  if (!id || !role || (!allowedRoles.includes(role) && role !== "super_admin")) {
+    return NextResponse.json({ error: "Identifiant et rôle requis" }, { status: 400 });
   }
   if (id === auth.user.id) {
     return NextResponse.json(
       { error: "Vous ne pouvez pas modifier votre propre rôle." },
       { status: 400 }
     );
-  }
-  if (!(await verifyAdminPassword(auth.user.email, password))) {
-    return NextResponse.json({ error: "Mot de passe incorrect" }, { status: 401 });
   }
   if (auth.role !== "super_admin" && role === "super_admin") {
     return NextResponse.json(
