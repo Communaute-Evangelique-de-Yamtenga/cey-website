@@ -2,6 +2,18 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
+function isAllowedMapUrl(value: unknown) {
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" &&
+      ["www.google.com", "maps.google.com"].includes(url.hostname) &&
+      url.pathname === "/maps/embed";
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
@@ -20,6 +32,9 @@ export async function POST(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const body = await req.json();
+  if (!isAllowedMapUrl(body.iframe_url)) {
+    return NextResponse.json({ error: "URL Google Maps invalide" }, { status: 400 });
+  }
   const { data, error } = await supabase.from("localisations").insert(body).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
@@ -32,6 +47,9 @@ export async function PUT(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { id, ...body } = await req.json();
+  if (!isAllowedMapUrl(body.iframe_url)) {
+    return NextResponse.json({ error: "URL Google Maps invalide" }, { status: 400 });
+  }
   const { data, error } = await supabase.from("localisations").update(body).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
