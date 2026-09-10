@@ -65,13 +65,23 @@ export async function requireAdminAuth(req: Request): Promise<AdminAuthResult> {
         .eq("id", user.id)
         .maybeSingle();
 
+      if (!adminRecord) {
+        return {
+          authorized: false,
+          response: NextResponse.json(
+            { error: "Compte administrateur requis" },
+            { status: 403 }
+          ),
+        };
+      }
+
       return {
         authorized: true,
         user: {
           id: user.id,
           email: user.email,
         },
-        role: adminRecord?.role ?? "admin",
+        role: adminRecord.role,
       };
     }
 
@@ -95,13 +105,23 @@ export async function requireAdminAuth(req: Request): Promise<AdminAuthResult> {
       .eq("id", user.id)
       .maybeSingle();
 
+    if (!adminRecord) {
+      return {
+        authorized: false,
+        response: NextResponse.json(
+          { error: "Compte administrateur requis" },
+          { status: 403 }
+        ),
+      };
+    }
+
     return {
       authorized: true,
       user: {
         id: user.id,
         email: user.email,
       },
-      role: adminRecord?.role ?? "admin",
+      role: adminRecord.role,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erreur interne";
