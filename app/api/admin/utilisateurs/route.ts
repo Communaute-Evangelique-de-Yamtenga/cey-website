@@ -58,8 +58,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const { email, role } = await req.json();
-  if (!email || !role) {
+  const body = await req.json().catch(() => null);
+  const email = body && typeof body === "object" && "email" in body ? body.email : null;
+  const role = body && typeof body === "object" && "role" in body ? body.role : null;
+  if (
+    typeof email !== "string" ||
+    email.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+    typeof role !== "string"
+  ) {
     return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
   }
 
