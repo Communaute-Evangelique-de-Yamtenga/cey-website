@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.authorized) return auth.response;
@@ -109,8 +111,9 @@ export async function DELETE(req: Request) {
     );
   }
 
-  const { id } = await req.json();
-  if (!id) {
+  const body = await req.json().catch(() => null);
+  const id = body && typeof body === "object" && "id" in body ? body.id : null;
+  if (typeof id !== "string" || !UUID_PATTERN.test(id)) {
     return NextResponse.json({ error: "Identifiant requis" }, { status: 400 });
   }
 
