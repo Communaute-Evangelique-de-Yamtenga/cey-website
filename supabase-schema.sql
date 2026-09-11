@@ -70,6 +70,39 @@ alter table pasteurs enable row level security;
 alter table construction enable row level security;
 alter table admin_users enable row level security;
 
+create or replace function public.is_admin_user()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where id = auth.uid()
+      and role in ('lecteur', 'editeur', 'admin', 'super_admin')
+  );
+$$;
+
+create or replace function public.is_super_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where id = auth.uid()
+      and role = 'super_admin'
+  );
+$$;
+
+grant execute on function public.is_admin_user() to authenticated;
+grant execute on function public.is_super_admin() to authenticated;
+
 -- Lecture publique (pour le site)
 create policy "lecture publique annonces" on annonces for select using (true);
 create policy "lecture publique evenements" on evenements for select using (true);
@@ -81,7 +114,27 @@ create policy "admin annonces" on annonces for all using (auth.role() = 'authent
 create policy "admin evenements" on evenements for all using (auth.role() = 'authenticated');
 create policy "admin pasteurs" on pasteurs for all using (auth.role() = 'authenticated');
 create policy "admin construction" on construction for all using (auth.role() = 'authenticated');
-create policy "admin users" on admin_users for all using (auth.role() = 'authenticated');
+drop policy if exists "admin users" on admin_users;
+create policy "admin users read" on admin_users
+  for select using (public.is_admin_user());
+create policy "admin users insert" on admin_users
+  for insert
+  with check (
+    public.is_super_admin()
+    or (public.is_admin_user() and role <> 'super_admin')
+  );
+create policy "admin users update" on admin_users
+  for update
+  using (
+    public.is_super_admin()
+    or (public.is_admin_user() and role <> 'super_admin')
+  )
+  with check (
+    public.is_super_admin()
+    or (public.is_admin_user() and role <> 'super_admin')
+  );
+create policy "admin users delete" on admin_users
+  for delete using (public.is_super_admin());
 
 -- 6. Programme hebdomadaire
 create table if not exists programme (
