@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
 const TAG_ACCENTS = ["blue", "red", "navy"];
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isValidEventDate(value: unknown): value is string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -85,7 +86,13 @@ export async function DELETE(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "deleteContent");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id } = await req.json();
+  const body = await req.json().catch(() => null);
+  const id = body && typeof body === "object" && "id" in body
+    ? body.id
+    : null;
+  if (typeof id !== "string" || !UUID_PATTERN.test(id)) {
+    return NextResponse.json({ error: "Identifiant d'événement invalide" }, { status: 400 });
+  }
   const { error } = await supabase.from("evenements").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
