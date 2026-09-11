@@ -21,8 +21,23 @@ export async function POST(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const body = await req.json();
-  const { data, error } = await supabase.from("chantier_photos").insert(body).select().single();
+  const body = await req.json().catch(() => null);
+  if (
+    !body ||
+    typeof body !== "object" ||
+    typeof body.url !== "string" ||
+    !/^https:\/\/(res\.cloudinary\.com|urqdhcgrvrdjilcpbniy\.supabase\.co)\//.test(body.url) ||
+    (body.caption !== undefined && typeof body.caption !== "string") ||
+    (body.ordre !== undefined && !Number.isInteger(body.ordre))
+  ) {
+    return NextResponse.json({ error: "Données de photo invalides" }, { status: 400 });
+  }
+  const photo = {
+    url: body.url,
+    ...(body.caption !== undefined ? { caption: body.caption } : {}),
+    ...(body.ordre !== undefined ? { ordre: body.ordre } : {}),
+  };
+  const { data, error } = await supabase.from("chantier_photos").insert(photo).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
@@ -33,8 +48,25 @@ export async function PUT(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id, ...body } = await req.json();
-  const { data, error } = await supabase.from("chantier_photos").update(body).eq("id", id).select().single();
+  const payload = await req.json().catch(() => null);
+  const id = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+  const body = payload && typeof payload === "object"
+    ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== "id"))
+    : null;
+  if (
+    typeof id !== "string" ||
+    !UUID_PATTERN.test(id) ||
+    !body ||
+    (body.url !== undefined && (typeof body.url !== "string" || !/^https:\/\/(res\.cloudinary\.com|urqdhcgrvrdjilcpbniy\.supabase\.co)\//.test(body.url))) ||
+    (body.caption !== undefined && typeof body.caption !== "string") ||
+    (body.ordre !== undefined && !Number.isInteger(body.ordre))
+  ) {
+    return NextResponse.json({ error: "Données de photo invalides" }, { status: 400 });
+  }
+  const allowedFields = Object.fromEntries(
+    Object.entries(body).filter(([key]) => ["url", "caption", "ordre"].includes(key))
+  );
+  const { data, error } = await supabase.from("chantier_photos").update(allowedFields).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

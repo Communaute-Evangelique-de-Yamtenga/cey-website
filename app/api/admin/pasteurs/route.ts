@@ -73,9 +73,13 @@ export async function PUT(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id, ...body } = await req.json();
+  const payload = await req.json().catch(() => null);
+  const id = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+  const body = payload && typeof payload === "object"
+    ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== "id"))
+    : null;
   const pasteur = validatePasteur(body);
-  if (!pasteur || typeof id !== "string" || !id) {
+  if (!pasteur || typeof id !== "string" || !UUID_PATTERN.test(id)) {
     return NextResponse.json({ error: "Données de pasteur invalides" }, { status: 400 });
   }
   const { data, error } = await supabase.from("pasteurs").update(pasteur).eq("id", id).select().single();

@@ -70,9 +70,13 @@ export async function PUT(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id, ...body } = await req.json();
+  const payload = await req.json().catch(() => null);
+  const id = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+  const body = payload && typeof payload === "object"
+    ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== "id"))
+    : null;
   const event = validateEvent(body);
-  if (!event || typeof id !== "string" || !id) {
+  if (!event || typeof id !== "string" || !UUID_PATTERN.test(id)) {
     return NextResponse.json({ error: "Données d'événement invalides" }, { status: 400 });
   }
   const { data, error } = await supabase.from("evenements").update(event).eq("id", id).select().single();
