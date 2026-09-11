@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LOCALISATION_FIELDS = ["label", "type", "iframe_url", "adresse", "ordre"];
 
 function isAllowedMapUrl(value: unknown) {
   if (typeof value !== "string") return false;
@@ -33,8 +34,11 @@ export async function POST(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const body = await req.json();
-  if (!isAllowedMapUrl(body.iframe_url)) {
+  const payload = await req.json().catch(() => null);
+  const body = payload && typeof payload === "object"
+    ? Object.fromEntries(Object.entries(payload).filter(([key]) => LOCALISATION_FIELDS.includes(key)))
+    : null;
+  if (!body || !isAllowedMapUrl(body.iframe_url) || !["principal", "annexe"].includes(String(body.type))) {
     return NextResponse.json({ error: "URL Google Maps invalide" }, { status: 400 });
   }
   const { data, error } = await supabase.from("localisations").insert(body).select().single();
