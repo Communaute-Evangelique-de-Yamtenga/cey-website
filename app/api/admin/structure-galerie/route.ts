@@ -25,7 +25,10 @@ export async function POST(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Données de galerie invalides" }, { status: 400 });
+  }
   const { data, error } = await supabase.from("structure_galerie").insert(body).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);

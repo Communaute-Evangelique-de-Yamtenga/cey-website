@@ -25,7 +25,10 @@ export async function POST(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Données d'activité invalides" }, { status: 400 });
+  }
   const { data, error } = await supabase.from("structure_activites").insert(body).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
@@ -37,7 +40,14 @@ export async function PUT(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id, ...body } = await req.json();
+  const payload = await req.json().catch(() => null);
+  const id = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+  const body = payload && typeof payload === "object" ? Object.fromEntries(
+    Object.entries(payload).filter(([key]) => key !== "id")
+  ) : null;
+  if (typeof id !== "string" || !UUID_PATTERN.test(id) || !body) {
+    return NextResponse.json({ error: "Données d'activité invalides" }, { status: 400 });
+  }
   const { data, error } = await supabase.from("structure_activites").update(body).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
