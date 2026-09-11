@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
@@ -35,7 +37,11 @@ export async function DELETE(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "deleteContent");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id } = await req.json();
+  const body = await req.json().catch(() => null);
+  const id = body && typeof body === "object" && "id" in body ? body.id : null;
+  if (typeof id !== "string" || !UUID_PATTERN.test(id)) {
+    return NextResponse.json({ error: "Identifiant de galerie invalide" }, { status: 400 });
+  }
   const { error } = await supabase.from("structure_galerie").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
