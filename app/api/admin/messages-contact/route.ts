@@ -23,8 +23,12 @@ export async function PUT(req: Request) {
   if (permissionResponse) return permissionResponse;
 
   const supabase = await createClient();
-  const { id, lu } = await req.json();
-  if (!id) return NextResponse.json({ error: "Identifiant manquant" }, { status: 400 });
+  const body = await req.json().catch(() => null);
+  const id = body && typeof body === "object" && "id" in body ? body.id : null;
+  const lu = body && typeof body === "object" && "lu" in body ? body.lu : null;
+  if (typeof id !== "string" || !UUID_PATTERN.test(id) || typeof lu !== "boolean") {
+    return NextResponse.json({ error: "Données de message invalides" }, { status: 400 });
+  }
 
   const { error } = await supabase.from("messages_contact").update({ lu }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

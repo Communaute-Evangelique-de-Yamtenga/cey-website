@@ -148,9 +148,16 @@ export async function PATCH(req: Request) {
     );
   }
 
-  const { id, role } = await req.json();
+  const body = await req.json().catch(() => null);
+  const id = body && typeof body === "object" && "id" in body ? body.id : null;
+  const role = body && typeof body === "object" && "role" in body ? body.role : null;
   const allowedRoles = ["admin", "editeur", "lecteur"];
-  if (!id || !role || (!allowedRoles.includes(role) && role !== "super_admin")) {
+  if (
+    typeof id !== "string" ||
+    !UUID_PATTERN.test(id) ||
+    typeof role !== "string" ||
+    (!allowedRoles.includes(role) && role !== "super_admin")
+  ) {
     return NextResponse.json({ error: "Identifiant et rôle requis" }, { status: 400 });
   }
   if (id === auth.user.id) {
