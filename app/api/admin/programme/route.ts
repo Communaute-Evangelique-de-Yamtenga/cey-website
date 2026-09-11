@@ -62,9 +62,13 @@ export async function PUT(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id, ...body } = await req.json();
+  const payload = await req.json().catch(() => null);
+  const id = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+  const body = payload && typeof payload === "object"
+    ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== "id"))
+    : null;
   const programme = validateProgramme(body);
-  if (!programme || typeof id !== "string" || !id) {
+  if (!programme || typeof id !== "string" || !UUID_PATTERN.test(id)) {
     return NextResponse.json({ error: "Données de programme invalides" }, { status: 400 });
   }
   await supabase.rpc("shift_programme_ordre_except", { target_ordre: programme.ordre, exclude_id: id });

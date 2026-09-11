@@ -48,9 +48,16 @@ export async function PUT(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "write");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id, ...body } = await req.json();
-  if (!isAllowedMapUrl(body.iframe_url)) {
+  const payload = await req.json().catch(() => null);
+  const id = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+  const body = payload && typeof payload === "object"
+    ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== "id"))
+    : null;
+  if (!body || !isAllowedMapUrl(body.iframe_url)) {
     return NextResponse.json({ error: "URL Google Maps invalide" }, { status: 400 });
+  }
+  if (typeof id !== "string" || !UUID_PATTERN.test(id)) {
+    return NextResponse.json({ error: "Identifiant de localisation invalide" }, { status: 400 });
   }
   const { data, error } = await supabase.from("localisations").update(body).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
