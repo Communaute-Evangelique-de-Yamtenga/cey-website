@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function validateProgramme(body: unknown) {
   if (!body || typeof body !== "object") return null;
   const item = body as Record<string, unknown>;
@@ -77,7 +79,13 @@ export async function DELETE(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "deleteContent");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { id } = await req.json();
+  const body = await req.json().catch(() => null);
+  const id = body && typeof body === "object" && "id" in body
+    ? body.id
+    : null;
+  if (typeof id !== "string" || !UUID_PATTERN.test(id)) {
+    return NextResponse.json({ error: "Identifiant de programme invalide" }, { status: 400 });
+  }
   const { error } = await supabase.from("programme").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
