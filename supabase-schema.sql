@@ -103,17 +103,62 @@ $$;
 grant execute on function public.is_admin_user() to authenticated;
 grant execute on function public.is_super_admin() to authenticated;
 
+create or replace function public.can_edit_content()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where id = auth.uid()
+      and role in ('editeur', 'admin', 'super_admin')
+  );
+$$;
+
+create or replace function public.can_delete_content()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where id = auth.uid()
+      and role in ('admin', 'super_admin')
+  );
+$$;
+
+grant execute on function public.can_edit_content() to authenticated;
+grant execute on function public.can_delete_content() to authenticated;
+
 -- Lecture publique (pour le site)
 create policy "lecture publique annonces" on annonces for select using (true);
 create policy "lecture publique evenements" on evenements for select using (true);
 create policy "lecture publique pasteurs" on pasteurs for select using (true);
 create policy "lecture publique construction" on construction for select using (true);
 
--- Écriture uniquement pour les admins connectés
-create policy "admin annonces" on annonces for all using (auth.role() = 'authenticated');
-create policy "admin evenements" on evenements for all using (auth.role() = 'authenticated');
-create policy "admin pasteurs" on pasteurs for all using (auth.role() = 'authenticated');
-create policy "admin construction" on construction for all using (auth.role() = 'authenticated');
+-- Écriture selon le rôle administrateur
+drop policy if exists "admin annonces" on annonces;
+drop policy if exists "admin evenements" on evenements;
+drop policy if exists "admin pasteurs" on pasteurs;
+drop policy if exists "admin construction" on construction;
+create policy "admin annonces insert" on annonces for insert with check (public.can_edit_content());
+create policy "admin annonces update" on annonces for update using (public.can_edit_content()) with check (public.can_edit_content());
+create policy "admin annonces delete" on annonces for delete using (public.can_delete_content());
+create policy "admin evenements insert" on evenements for insert with check (public.can_edit_content());
+create policy "admin evenements update" on evenements for update using (public.can_edit_content()) with check (public.can_edit_content());
+create policy "admin evenements delete" on evenements for delete using (public.can_delete_content());
+create policy "admin pasteurs insert" on pasteurs for insert with check (public.can_edit_content());
+create policy "admin pasteurs update" on pasteurs for update using (public.can_edit_content()) with check (public.can_edit_content());
+create policy "admin pasteurs delete" on pasteurs for delete using (public.can_delete_content());
+create policy "admin construction insert" on construction for insert with check (public.can_edit_content());
+create policy "admin construction update" on construction for update using (public.can_edit_content()) with check (public.can_edit_content());
+create policy "admin construction delete" on construction for delete using (public.can_delete_content());
 drop policy if exists "admin users" on admin_users;
 create policy "admin users read" on admin_users
   for select using (public.is_admin_user());
@@ -147,7 +192,10 @@ create table if not exists programme (
 
 alter table programme enable row level security;
 create policy "lecture publique programme" on programme for select using (true);
-create policy "admin programme" on programme for all using (auth.role() = 'authenticated');
+drop policy if exists "admin programme" on programme;
+create policy "admin programme insert" on programme for insert with check (public.can_edit_content());
+create policy "admin programme update" on programme for update using (public.can_edit_content()) with check (public.can_edit_content());
+create policy "admin programme delete" on programme for delete using (public.can_delete_content());
 
 -- 7. Image principale du temple (home)
 create table if not exists temple_image (
@@ -158,7 +206,10 @@ create table if not exists temple_image (
 );
 alter table temple_image enable row level security;
 create policy "lecture publique temple_image" on temple_image for select using (true);
-create policy "admin temple_image" on temple_image for all using (auth.role() = 'authenticated');
+drop policy if exists "admin temple_image" on temple_image;
+create policy "admin temple_image insert" on temple_image for insert with check (public.can_edit_content());
+create policy "admin temple_image update" on temple_image for update using (public.can_edit_content()) with check (public.can_edit_content());
+create policy "admin temple_image delete" on temple_image for delete using (public.can_delete_content());
 
 -- 8. Photos du chantier (page projet)
 create table if not exists chantier_photos (
@@ -170,7 +221,10 @@ create table if not exists chantier_photos (
 );
 alter table chantier_photos enable row level security;
 create policy "lecture publique chantier_photos" on chantier_photos for select using (true);
-create policy "admin chantier_photos" on chantier_photos for all using (auth.role() = 'authenticated');
+drop policy if exists "admin chantier_photos" on chantier_photos;
+create policy "admin chantier_photos insert" on chantier_photos for insert with check (public.can_edit_content());
+create policy "admin chantier_photos update" on chantier_photos for update using (public.can_edit_content()) with check (public.can_edit_content());
+create policy "admin chantier_photos delete" on chantier_photos for delete using (public.can_delete_content());
 
 -- Données initiales
 insert into programme (day, title, hours, ordre) values

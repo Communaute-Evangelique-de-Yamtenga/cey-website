@@ -8,15 +8,14 @@ export async function GET(req: Request) {
   const permissionResponse = requireAdminPermission(auth, "manageUsers");
   if (permissionResponse) return permissionResponse;
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("admin_users").select("*").order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
   const { createClient: createAdmin } = await import("@supabase/supabase-js");
   const admin = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+  const { data, error } = await admin.from("admin_users").select("*").order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
   const authUsers = [];
   let page = 1;
   const perPage = 1000;
@@ -83,8 +82,9 @@ export async function POST(req: Request) {
   });
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
-  const supabase = await createClient();
-  const { error: insertError } = await supabase.from("admin_users").insert({ id: authData.user.id, email, role });
+  const { error: insertError } = await admin
+    .from("admin_users")
+    .insert({ id: authData.user.id, email, role });
   if (insertError) {
     await admin.auth.admin.deleteUser(authData.user.id);
     return NextResponse.json({ error: insertError.message }, { status: 500 });
@@ -186,4 +186,3 @@ export async function PATCH(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
-
