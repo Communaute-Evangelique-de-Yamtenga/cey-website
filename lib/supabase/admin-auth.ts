@@ -73,8 +73,17 @@ export async function requireAdminAuth(req: Request): Promise<AdminAuthResult> {
         };
       }
 
-      // Vérifier le rôle dans admin_users avec la clé service role si disponible
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!serviceKey) {
+        console.error("[admin auth]: SUPABASE_SERVICE_ROLE_KEY is not configured");
+        return {
+          authorized: false,
+          response: NextResponse.json(
+            { error: "Service d'authentification indisponible" },
+            { status: 503 }
+          ),
+        };
+      }
       const adminClient = createSupabaseClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         serviceKey
@@ -146,10 +155,11 @@ export async function requireAdminAuth(req: Request): Promise<AdminAuthResult> {
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erreur interne";
+    console.error("[admin auth]:", msg);
     return {
       authorized: false,
       response: NextResponse.json(
-        { error: `Erreur lors de la vérification des droits : ${msg}` },
+        { error: "Erreur interne du serveur" },
         { status: 500 }
       ),
     };
