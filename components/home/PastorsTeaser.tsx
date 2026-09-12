@@ -6,7 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function PastorsTeaser() {
   const supabase = await createClient();
-  const { data: pastors } = await supabase.from("pasteurs").select("id, name, role, photo").order("ordre", { ascending: true });
+  const { data: pastors } = await supabase
+    .from("pasteurs")
+    .select("id, name, role, photo, ordre, created_at")
+    .order("ordre", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
 
   return (
     <Container className="py-16 text-center sm:py-[76px]">

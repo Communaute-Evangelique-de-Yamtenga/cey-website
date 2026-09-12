@@ -48,7 +48,12 @@ export async function GET(req: Request) {
   const permissionResponse = requireAdminPermission(authResponse, "read");
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("pasteurs").select("*").order("ordre", { ascending: true });
+  const { data, error } = await supabase
+    .from("pasteurs")
+    .select("*")
+    .order("ordre", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
   if (error) {
     console.error("[admin pasteurs GET]:", error.message);
     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
@@ -65,7 +70,21 @@ export async function POST(req: Request) {
   const body = await req.json();
   const pasteur = validatePasteur(body);
   if (!pasteur) return NextResponse.json({ error: "Données de pasteur invalides" }, { status: 400 });
-  const { data, error } = await supabase.from("pasteurs").insert(pasteur).select().single();
+  const { data: lastPasteur, error: orderError } = await supabase
+    .from("pasteurs")
+    .select("ordre")
+    .order("ordre", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (orderError) {
+    console.error("[admin pasteurs order]:", orderError.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
+  const { data, error } = await supabase
+    .from("pasteurs")
+    .insert({ ...pasteur, ordre: (lastPasteur?.ordre ?? -1) + 1 })
+    .select()
+    .single();
   if (error) {
     console.error("[admin pasteurs POST]:", error.message);
     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
