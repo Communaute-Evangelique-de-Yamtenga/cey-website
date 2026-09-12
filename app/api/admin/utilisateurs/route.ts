@@ -16,14 +16,20 @@ export async function GET(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
   const { data, error } = await admin.from("admin_users").select("*").order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin utilisateurs GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
 
   const authUsers = [];
   let page = 1;
   const perPage = 1000;
   while (true) {
     const { data: authData, error: authError } = await admin.auth.admin.listUsers({ page, perPage });
-    if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
+    if (authError) {
+      console.error("[admin utilisateurs auth list]:", authError.message);
+      return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+    }
     authUsers.push(...authData.users);
     if (authData.users.length < perPage) break;
     page += 1;
@@ -89,14 +95,18 @@ export async function POST(req: Request) {
   const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation`,
   });
-  if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
+  if (authError) {
+    console.error("[admin utilisateurs invite]:", authError.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
 
   const { error: insertError } = await admin
     .from("admin_users")
     .insert({ id: authData.user.id, email, role });
   if (insertError) {
     await admin.auth.admin.deleteUser(authData.user.id);
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    console.error("[admin utilisateurs profile insert]:", insertError.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
   }
 
   return NextResponse.json({
@@ -190,7 +200,10 @@ export async function PATCH(req: Request) {
     .select("role")
     .eq("id", id)
     .maybeSingle();
-  if (targetError) return NextResponse.json({ error: targetError.message }, { status: 500 });
+  if (targetError) {
+    console.error("[admin utilisateurs target lookup]:", targetError.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   if (!target) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
   if (auth.role !== "super_admin" && target.role === "super_admin") {
     return NextResponse.json(
@@ -200,6 +213,9 @@ export async function PATCH(req: Request) {
   }
 
   const { error } = await admin.from("admin_users").update({ role }).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin utilisateurs role update]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }
