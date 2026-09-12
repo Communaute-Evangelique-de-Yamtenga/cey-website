@@ -50,6 +50,46 @@ export async function POST(req: Request) {
   return NextResponse.json(data);
 }
 
+export async function PUT(req: Request) {
+  const authResponse = await requireAdminAuth(req);
+  if (!authResponse.authorized) return authResponse.response;
+  const permissionResponse = requireAdminPermission(authResponse, "write");
+  if (permissionResponse) return permissionResponse;
+  const supabase = await createClient();
+  const payload = await req.json().catch(() => null);
+  const id = payload && typeof payload === "object" && "id" in payload ? payload.id : null;
+  const body = payload && typeof payload === "object"
+    ? payload as Record<string, unknown>
+    : null;
+
+  if (
+    !body ||
+    typeof id !== "string" ||
+    !UUID_PATTERN.test(id) ||
+    typeof body.text !== "string" ||
+    body.text.trim().length === 0 ||
+    body.text.length > 5000 ||
+    typeof body.date !== "string" ||
+    body.date.trim().length === 0 ||
+    body.date.length > 100 ||
+    typeof body.active !== "boolean"
+  ) {
+    return NextResponse.json({ error: "Données d'annonce invalides" }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from("annonces")
+    .update({ text: body.text.trim(), date: body.date.trim(), active: body.active })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) {
+    console.error("[admin annonces PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
+  return NextResponse.json(data);
+}
+
 export async function DELETE(req: Request) {
   const authResponse = await requireAdminAuth(req);
   if (!authResponse.authorized) return authResponse.response;
