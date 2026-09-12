@@ -12,7 +12,10 @@ export async function GET(req: Request) {
 
   const supabase = await createClient();
   const { data, error } = await supabase.from("messages_contact").select("*").order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin messages GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -31,7 +34,10 @@ export async function PUT(req: Request) {
   }
 
   const { error } = await supabase.from("messages_contact").update({ lu }).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin messages PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }
 
@@ -49,6 +55,9 @@ export async function DELETE(req: Request) {
   }
 
   const { error } = await supabase.from("messages_contact").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin messages DELETE]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }

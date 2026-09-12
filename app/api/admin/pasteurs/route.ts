@@ -49,7 +49,10 @@ export async function GET(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data, error } = await supabase.from("pasteurs").select("*").order("ordre", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin pasteurs GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -63,7 +66,10 @@ export async function POST(req: Request) {
   const pasteur = validatePasteur(body);
   if (!pasteur) return NextResponse.json({ error: "Données de pasteur invalides" }, { status: 400 });
   const { data, error } = await supabase.from("pasteurs").insert(pasteur).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin pasteurs POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -83,7 +89,10 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Données de pasteur invalides" }, { status: 400 });
   }
   const { data, error } = await supabase.from("pasteurs").update(pasteur).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin pasteurs PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -101,6 +110,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Identifiant de pasteur invalide" }, { status: 400 });
   }
   const { error } = await supabase.from("pasteurs").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin pasteurs DELETE]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }
