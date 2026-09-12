@@ -9,7 +9,10 @@ export async function GET(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data, error } = await supabase.from("construction").select("*").single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin construction GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -28,6 +31,9 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Données de construction invalides" }, { status: 400 });
   }
   const { data, error } = await supabase.from("construction").update(body).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin construction PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }

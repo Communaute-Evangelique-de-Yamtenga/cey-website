@@ -16,7 +16,10 @@ export async function GET(req: Request) {
   let query = supabase.from("structure_activites").select("*").order("ordre");
   if (slug) query = query.eq("structure_slug", slug);
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin structure activities GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -32,7 +35,10 @@ export async function POST(req: Request) {
   }
   const insert = Object.fromEntries(Object.entries(body).filter(([key]) => ACTIVITE_FIELDS.includes(key)));
   const { data, error } = await supabase.from("structure_activites").insert(insert).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin structure activities POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -52,7 +58,10 @@ export async function PUT(req: Request) {
   }
   const update = Object.fromEntries(Object.entries(body).filter(([key]) => ACTIVITE_FIELDS.includes(key) && key !== "structure_slug"));
   const { data, error } = await supabase.from("structure_activites").update(update).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin structure activities PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -68,6 +77,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Identifiant d'activité invalide" }, { status: 400 });
   }
   const { error } = await supabase.from("structure_activites").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin structure activities DELETE]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }

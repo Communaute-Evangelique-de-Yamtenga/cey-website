@@ -37,7 +37,10 @@ export async function GET(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data, error } = await supabase.from("programme").select("*").order("ordre", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin programme GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -52,7 +55,10 @@ export async function POST(req: Request) {
   if (!programme) return NextResponse.json({ error: "Données de programme invalides" }, { status: 400 });
   await supabase.rpc("shift_programme_ordre", { target_ordre: programme.ordre });
   const { data, error } = await supabase.from("programme").insert(programme).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin programme POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -73,7 +79,10 @@ export async function PUT(req: Request) {
   }
   await supabase.rpc("shift_programme_ordre_except", { target_ordre: programme.ordre, exclude_id: id });
   const { data, error } = await supabase.from("programme").update(programme).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin programme PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -91,6 +100,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Identifiant de programme invalide" }, { status: 400 });
   }
   const { error } = await supabase.from("programme").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin programme DELETE]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }

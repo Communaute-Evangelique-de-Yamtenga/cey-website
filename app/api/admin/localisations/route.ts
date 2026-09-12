@@ -24,7 +24,10 @@ export async function GET(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data, error } = await supabase.from("localisations").select("*").order("ordre");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin localisations GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -42,7 +45,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "URL Google Maps invalide" }, { status: 400 });
   }
   const { data, error } = await supabase.from("localisations").insert(body).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin localisations POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -64,7 +70,10 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Identifiant de localisation invalide" }, { status: 400 });
   }
   const { data, error } = await supabase.from("localisations").update(body).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin localisations PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -82,6 +91,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Identifiant de localisation invalide" }, { status: 400 });
   }
   const { error } = await supabase.from("localisations").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin localisations DELETE]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }

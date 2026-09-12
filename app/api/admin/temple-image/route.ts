@@ -31,7 +31,10 @@ export async function POST(req: Request) {
   // On garde une seule image : on supprime l'ancienne avant d'insérer
   await supabase.from("temple_image").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   const { data, error } = await supabase.from("temple_image").insert({ ...body, updated_at: new Date().toISOString() }).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin temple image POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 

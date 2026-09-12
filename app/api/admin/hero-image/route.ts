@@ -31,7 +31,10 @@ export async function POST(req: Request) {
   }
   await supabase.from("hero_image").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   const { data, error } = await supabase.from("hero_image").insert(body).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin hero image POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 

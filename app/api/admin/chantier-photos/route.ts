@@ -11,7 +11,10 @@ export async function GET(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data, error } = await supabase.from("chantier_photos").select("*").order("ordre", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin chantier photos GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -38,7 +41,10 @@ export async function POST(req: Request) {
     ...(body.ordre !== undefined ? { ordre: body.ordre } : {}),
   };
   const { data, error } = await supabase.from("chantier_photos").insert(photo).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin chantier photos POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -67,7 +73,10 @@ export async function PUT(req: Request) {
     Object.entries(body).filter(([key]) => ["url", "caption", "ordre"].includes(key))
   );
   const { data, error } = await supabase.from("chantier_photos").update(allowedFields).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin chantier photos PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -85,6 +94,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Identifiant de photo invalide" }, { status: 400 });
   }
   const { error } = await supabase.from("chantier_photos").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin chantier photos DELETE]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }
