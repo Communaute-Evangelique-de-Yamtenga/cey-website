@@ -46,7 +46,10 @@ export async function GET(req: Request) {
   if (permissionResponse) return permissionResponse;
   const supabase = await createClient();
   const { data, error } = await supabase.from("evenements").select("*").order("date", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin evenements GET]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -60,7 +63,10 @@ export async function POST(req: Request) {
   const event = validateEvent(body);
   if (!event) return NextResponse.json({ error: "Données d'événement invalides" }, { status: 400 });
   const { data, error } = await supabase.from("evenements").insert(event).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin evenements POST]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -80,7 +86,10 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Données d'événement invalides" }, { status: 400 });
   }
   const { data, error } = await supabase.from("evenements").update(event).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin evenements PUT]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 
@@ -98,6 +107,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Identifiant d'événement invalide" }, { status: 400 });
   }
   const { error } = await supabase.from("evenements").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[admin evenements DELETE]:", error.message);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }
