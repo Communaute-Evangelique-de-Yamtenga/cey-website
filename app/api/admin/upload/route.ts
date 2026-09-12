@@ -76,6 +76,6 @@ export async function POST(req: Request) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur inconnue";
     console.error("[upload]:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Échec de l'envoi du fichier" }, { status: 500 });
   }
 }
