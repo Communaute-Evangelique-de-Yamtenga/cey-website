@@ -18,6 +18,27 @@ export interface AdminAuthFailure {
 
 export type AdminAuthResult = AdminAuthSuccess | AdminAuthFailure;
 
+export type AdminPermission = "read" | "write" | "deleteContent" | "manageUsers";
+
+const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
+  lecteur: ["read"],
+  editeur: ["read", "write"],
+  admin: ["read", "write", "deleteContent", "manageUsers"],
+  super_admin: ["read", "write", "deleteContent", "manageUsers"],
+};
+
+export function requireAdminPermission(
+  auth: AdminAuthSuccess,
+  permission: AdminPermission
+): NextResponse | null {
+  if (ROLE_PERMISSIONS[auth.role]?.includes(permission)) return null;
+
+  return NextResponse.json(
+    { error: "Droits insuffisants pour cette opération" },
+    { status: 403 }
+  );
+}
+
 /**
  * Vérifie l'authentification et les droits administrateur.
  * Supporte :
@@ -52,8 +73,17 @@ export async function requireAdminAuth(req: Request): Promise<AdminAuthResult> {
         };
       }
 
-      // Vérifier le rôle dans admin_users avec la clé service role si disponible
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!serviceKey) {
+        console.error("[admin auth]: SUPABASE_SERVICE_ROLE_KEY is not configured");
+        return {
+          authorized: false,
+          response: NextResponse.json(
+            { error: "Service d'authentification indisponible" },
+            { status: 503 }
+          ),
+        };
+      }
       const adminClient = createSupabaseClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         serviceKey
@@ -65,13 +95,23 @@ export async function requireAdminAuth(req: Request): Promise<AdminAuthResult> {
         .eq("id", user.id)
         .maybeSingle();
 
+      if (!adminRecord) {
+        return {
+          authorized: false,
+          response: NextResponse.json(
+            { error: "Compte administrateur requis" },
+            { status: 403 }
+          ),
+        };
+      }
+
       return {
         authorized: true,
         user: {
           id: user.id,
           email: user.email,
         },
-        role: adminRecord?.role ?? "admin",
+        role: adminRecord.role,
       };
     }
 
@@ -95,20 +135,31 @@ export async function requireAdminAuth(req: Request): Promise<AdminAuthResult> {
       .eq("id", user.id)
       .maybeSingle();
 
+    if (!adminRecord) {
+      return {
+        authorized: false,
+        response: NextResponse.json(
+          { error: "Compte administrateur requis" },
+          { status: 403 }
+        ),
+      };
+    }
+
     return {
       authorized: true,
       user: {
         id: user.id,
         email: user.email,
       },
-      role: adminRecord?.role ?? "admin",
+      role: adminRecord.role,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erreur interne";
+    console.error("[admin auth]:", msg);
     return {
       authorized: false,
       response: NextResponse.json(
-        { error: `Erreur lors de la vérification des droits : ${msg}` },
+        { error: "Erreur interne du serveur" },
         { status: 500 }
       ),
     };

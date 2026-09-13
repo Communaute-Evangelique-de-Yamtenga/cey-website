@@ -9,7 +9,12 @@ export const metadata: Metadata = { title: "Pasteurs" };
 
 export default async function PasteursPage() {
   const supabase = await createClient();
-  const { data: pastors } = await supabase.from("pasteurs").select("*").order("ordre", { ascending: true });
+  const { data: pastors } = await supabase
+    .from("pasteurs")
+    .select("*")
+    .order("ordre", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
 
   return (
     <div>
