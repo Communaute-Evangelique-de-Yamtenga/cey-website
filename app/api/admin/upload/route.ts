@@ -63,16 +63,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Le contenu du fichier ne correspond pas à son type" }, { status: 400 });
     }
 
-  const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
-    cloudinary.uploader.upload_stream({ folder, resource_type: "image" }, (error, result) => {
-      if (error || !result) return reject(error);
-      resolve(result);
-    }).end(buffer);
-  }).catch((err) => {
-    throw new Error(err?.message ?? "Cloudinary upload failed");
-  });
+    const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+      cloudinary.uploader.upload_stream({ folder, resource_type: "image" }, (error, result) => {
+        if (error || !result) return reject(error);
+        resolve(result);
+      }).end(buffer);
+    }).catch((err) => {
+      throw new Error(err?.message ?? "Cloudinary upload failed");
+    });
 
-  return NextResponse.json({ url: result.secure_url, public_id: result.public_id });
+    const optimizedUrl = cloudinary.url(result.public_id, {
+      secure: true,
+      transformation: [
+        { width: 2000, height: 2000, crop: "limit" },
+        { quality: "auto", fetch_format: "auto" },
+      ],
+    });
+
+    return NextResponse.json({ url: optimizedUrl, public_id: result.public_id });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur inconnue";
     console.error("[upload]:", message);
