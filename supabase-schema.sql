@@ -103,6 +103,23 @@ $$;
 grant execute on function public.is_admin_user() to authenticated;
 grant execute on function public.is_super_admin() to authenticated;
 
+create or replace function public.can_manage_users()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where id = auth.uid()
+      and role in ('admin', 'super_admin')
+  );
+$$;
+
+grant execute on function public.can_manage_users() to authenticated;
+
 create or replace function public.can_edit_content()
 returns boolean
 language sql
@@ -160,23 +177,26 @@ create policy "admin construction insert" on construction for insert with check 
 create policy "admin construction update" on construction for update using (public.can_edit_content()) with check (public.can_edit_content());
 create policy "admin construction delete" on construction for delete using (public.can_delete_content());
 drop policy if exists "admin users" on admin_users;
+drop policy if exists "admin users insert" on admin_users;
+drop policy if exists "admin users update" on admin_users;
+drop policy if exists "admin users delete" on admin_users;
 create policy "admin users read" on admin_users
   for select using (public.is_admin_user());
 create policy "admin users insert" on admin_users
   for insert
   with check (
-    public.is_super_admin()
-    or (public.is_admin_user() and role <> 'super_admin')
+    public.can_manage_users()
+    and (public.is_super_admin() or role <> 'super_admin')
   );
 create policy "admin users update" on admin_users
   for update
   using (
-    public.is_super_admin()
-    or (public.is_admin_user() and role <> 'super_admin')
+    public.can_manage_users()
+    and (public.is_super_admin() or role <> 'super_admin')
   )
   with check (
-    public.is_super_admin()
-    or (public.is_admin_user() and role <> 'super_admin')
+    public.can_manage_users()
+    and (public.is_super_admin() or role <> 'super_admin')
   );
 create policy "admin users delete" on admin_users
   for delete using (public.is_super_admin());

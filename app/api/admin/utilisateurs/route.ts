@@ -96,6 +96,12 @@ export async function POST(req: Request) {
     redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation`,
   });
   if (authError) {
+    if (authError.code === "email_exists" || authError.status === 422) {
+      return NextResponse.json(
+        { error: "Le compte existe déjà." },
+        { status: 409 }
+      );
+    }
     console.error("[admin utilisateurs invite]:", authError.message);
     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
   }
