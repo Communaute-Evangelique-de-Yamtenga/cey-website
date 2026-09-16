@@ -131,6 +131,26 @@ $$;
 revoke all on function public.check_auth_rate_limit(text, integer, integer) from public, anon, authenticated;
 grant execute on function public.check_auth_rate_limit(text, integer, integer) to service_role;
 
+create table if not exists public.admin_password_reset_codes (
+  id uuid primary key default gen_random_uuid(),
+  admin_user_id uuid not null references public.admin_users(id) on delete cascade,
+  email text not null,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  attempts integer not null default 0,
+  resend_available_at timestamptz not null,
+  consumed_at timestamptz,
+  reset_token_hash text,
+  reset_token_expires_at timestamptz,
+  reset_token_used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists admin_password_reset_codes_lookup_idx
+  on public.admin_password_reset_codes (admin_user_id, created_at desc);
+
+alter table public.admin_password_reset_codes enable row level security;
+
 -- =============================================
 -- RLS (Row Level Security)
 -- =============================================
