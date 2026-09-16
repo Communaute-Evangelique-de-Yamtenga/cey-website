@@ -151,6 +151,33 @@ create index if not exists admin_password_reset_codes_lookup_idx
 
 alter table public.admin_password_reset_codes enable row level security;
 
+create or replace function public.increment_password_reset_attempt(
+  p_id uuid,
+  p_max_attempts integer
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_max_attempts < 1 then
+    return false;
+  end if;
+
+  update public.admin_password_reset_codes
+  set attempts = attempts + 1
+  where id = p_id
+    and consumed_at is null
+    and attempts < p_max_attempts;
+
+  return found;
+end;
+$$;
+
+revoke all on function public.increment_password_reset_attempt(uuid, integer) from public, anon, authenticated;
+grant execute on function public.increment_password_reset_attempt(uuid, integer) to service_role;
+
 -- =============================================
 -- RLS (Row Level Security)
 -- =============================================

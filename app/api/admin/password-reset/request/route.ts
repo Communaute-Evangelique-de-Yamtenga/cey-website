@@ -11,7 +11,7 @@ import {
 const GENERIC_MESSAGE = "Si cette adresse correspond à un compte administrateur, un code a été envoyé.";
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+ const body = await req.json().catch(() => null);
   const email = body && typeof body === "object" && "email" in body ? body.email : null;
   if (typeof email !== "string" || email.length > 320) {
     return NextResponse.json({ message: GENERIC_MESSAGE });

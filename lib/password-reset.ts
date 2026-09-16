@@ -36,6 +36,7 @@ export async function sendPasswordResetCode(email: string, code: string) {
       subject: "Code de récupération C.E.Y Website",
       textContent: `Votre code de récupération est : ${code}. Il expire dans 10 minutes.`,
     }),
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) {

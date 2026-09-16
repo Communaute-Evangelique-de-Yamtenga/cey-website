@@ -32,10 +32,14 @@ export async function POST(req: Request) {
   }
 
   if (hashResetValue(code) !== reset.code_hash) {
-    await admin.from("admin_password_reset_codes")
-      .update({ attempts: reset.attempts + 1 })
-      .eq("id", reset.id)
-      .is("consumed_at", null);
+    const { data: attemptRecorded, error: attemptError } = await admin.rpc("increment_password_reset_attempt", {
+      p_id: reset.id,
+      p_max_attempts: PASSWORD_RESET_MAX_ATTEMPTS,
+    });
+    if (attemptError) throw new Error(attemptError.message);
+    if (attemptRecorded !== true) {
+      return NextResponse.json({ error: "Code invalide ou expiré." }, { status: 400 });
+    }
     return NextResponse.json({ error: "Code invalide ou expiré." }, { status: 400 });
   }
 
