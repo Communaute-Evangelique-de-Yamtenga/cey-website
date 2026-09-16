@@ -67,6 +67,70 @@ alter table admin_users
 drop trigger if exists on_auth_user_password_changed on auth.users;
 drop function if exists public.mark_admin_activation_completed();
 
+create table if not exists public.auth_rate_limits (
+  key text primary key,
+  attempts integer not null default 0,
+  window_started_at timestamptz not null default now()
+);
+
+alter table public.auth_rate_limits enable row level security;
+
+create or replace function public.check_auth_rate_limit(
+  p_key text,
+  p_max_attempts integer,
+  p_window_seconds integer
+)
+returns table(allowed boolean, retry_after_seconds integer)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_row public.auth_rate_limits%rowtype;
+  elapsed_seconds integer;
+begin
+  if p_key is null or length(p_key) < 16
+    or p_max_attempts < 1 or p_window_seconds < 1 then
+    return query select false, p_window_seconds;
+    return;
+  end if;
+
+  select * into current_row
+  from public.auth_rate_limits
+  where key = p_key
+  for update;
+
+  if not found then
+    insert into public.auth_rate_limits (key, attempts)
+    values (p_key, 1);
+    return query select true, 0;
+    return;
+  end if;
+
+  elapsed_seconds := floor(extract(epoch from (now() - current_row.window_started_at)))::integer;
+  if elapsed_seconds >= p_window_seconds then
+    update public.auth_rate_limits
+    set attempts = 1, window_started_at = now()
+    where key = p_key;
+    return query select true, 0;
+    return;
+  end if;
+
+  if current_row.attempts >= p_max_attempts then
+    return query select false, greatest(1, p_window_seconds - elapsed_seconds);
+    return;
+  end if;
+
+  update public.auth_rate_limits
+  set attempts = attempts + 1
+  where key = p_key;
+  return query select true, 0;
+end;
+$$;
+
+revoke all on function public.check_auth_rate_limit(text, integer, integer) from public, anon, authenticated;
+grant execute on function public.check_auth_rate_limit(text, integer, integer) to service_role;
+
 -- =============================================
 -- RLS (Row Level Security)
 -- =============================================

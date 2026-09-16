@@ -1,5 +1,6 @@
 import { requireAdminAuth } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
+import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 const INVITATION_MAX_AGE_MS = 2 * 60 * 1000;
 
@@ -18,6 +19,13 @@ export async function POST(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+  const limit = await checkAuthRateLimit(admin, `activation:${auth.user.id}`, 5, 900);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Trop de tentatives. Réessayez plus tard." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
+  }
 
   const { data: target, error: targetError } = await admin.auth.admin.getUserById(auth.user.id);
   if (targetError || !target.user) {
