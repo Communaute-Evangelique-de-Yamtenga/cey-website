@@ -39,8 +39,7 @@ export async function GET(req: Request) {
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
   const users = data.map((user) => {
     const authUser = authUsersById.get(user.id);
-    const activationCompleted = authUser?.user_metadata?.activation_completed === true ||
-      (!authUser?.user_metadata?.activation_started && Boolean(authUser?.last_sign_in_at));
+    const activationCompleted = Boolean(user.activation_completed_at);
     const invitationSentAt = authUser?.confirmation_sent_at ?? authUser?.invited_at;
     const invitationExpired = Boolean(
       !activationCompleted &&
@@ -167,8 +166,13 @@ export async function DELETE(req: Request) {
   );
   if (auth.role !== "super_admin") {
     const { data: target } = await admin.auth.admin.getUserById(id);
+    const { data: targetAdmin } = await admin
+      .from("admin_users")
+      .select("activation_completed_at")
+      .eq("id", id)
+      .maybeSingle();
     const invitationSentAt = target.user?.confirmation_sent_at ?? target.user?.invited_at;
-    const activationCompleted = target.user?.user_metadata?.activation_completed === true;
+    const activationCompleted = Boolean(targetAdmin?.activation_completed_at);
     const invitationExpired = Boolean(
       target.user &&
       !activationCompleted &&

@@ -57,8 +57,15 @@ create table if not exists admin_users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   role text not null default 'annonces',
+  activation_completed_at timestamptz,
   created_at timestamptz default now()
 );
+
+alter table admin_users
+  add column if not exists activation_completed_at timestamptz;
+
+drop trigger if exists on_auth_user_password_changed on auth.users;
+drop function if exists public.mark_admin_activation_completed();
 
 -- =============================================
 -- RLS (Row Level Security)
