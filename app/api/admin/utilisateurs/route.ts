@@ -41,10 +41,8 @@ export async function GET(req: Request) {
     const authUser = authUsersById.get(user.id);
     const activationCompleted = authUser?.user_metadata?.activation_completed === true ||
       (!authUser?.user_metadata?.activation_started && Boolean(authUser?.last_sign_in_at));
-    const activationStarted = authUser?.user_metadata?.activation_started === true;
     const invitationSentAt = authUser?.confirmation_sent_at ?? authUser?.invited_at;
     const invitationExpired = Boolean(
-      activationStarted &&
       !activationCompleted &&
       invitationSentAt &&
       Date.now() - new Date(invitationSentAt).getTime() >= INVITATION_MAX_AGE_MS
@@ -170,11 +168,9 @@ export async function DELETE(req: Request) {
   if (auth.role !== "super_admin") {
     const { data: target } = await admin.auth.admin.getUserById(id);
     const invitationSentAt = target.user?.confirmation_sent_at ?? target.user?.invited_at;
-    const activationStarted = target.user?.user_metadata?.activation_started === true;
     const activationCompleted = target.user?.user_metadata?.activation_completed === true;
     const invitationExpired = Boolean(
       target.user &&
-      activationStarted &&
       !activationCompleted &&
       invitationSentAt &&
       Date.now() - new Date(invitationSentAt).getTime() >= INVITATION_MAX_AGE_MS
