@@ -6,6 +6,7 @@ import {
   PASSWORD_RESET_CODE_TTL_MS,
   PASSWORD_RESET_RESEND_DELAY_MS,
   sendPasswordResetCode,
+  verifyActivatedAccountContext,
 } from "@/lib/password-reset";
 
 const GENERIC_MESSAGE = "Si cette adresse correspond à un compte administrateur, un code a été envoyé.";
@@ -13,11 +14,22 @@ const GENERIC_MESSAGE = "Si cette adresse correspond à un compte administrateur
 export async function POST(req: Request) {
  const body = await req.json().catch(() => null);
   const email = body && typeof body === "object" && "email" in body ? body.email : null;
+  const context = body && typeof body === "object" && "activatedAccountContext" in body
+    ? body.activatedAccountContext
+    : null;
   if (typeof email !== "string" || email.length > 320) {
     return NextResponse.json({ message: GENERIC_MESSAGE });
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  const verifiedContext = typeof context === "string" ? verifyActivatedAccountContext(context) : null;
+  if (context && !verifiedContext) {
+    return NextResponse.json({ message: GENERIC_MESSAGE });
+  }
+  const targetUserId = verifiedContext?.userId;
+  if (verifiedContext && normalizedEmail !== verifiedContext.email.trim().toLowerCase()) {
+    return NextResponse.json({ message: GENERIC_MESSAGE });
+  }
   const { createClient: createAdmin } = await import("@supabase/supabase-js");
   const admin = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,11 +38,12 @@ export async function POST(req: Request) {
   const limit = await checkAuthRateLimit(admin, `password-reset:${normalizedEmail}`, 3, 900);
   if (!limit.allowed) return NextResponse.json({ message: GENERIC_MESSAGE });
 
-  const { data: adminUser } = await admin
+  const adminUserQuery = admin
     .from("admin_users")
-    .select("id,email")
-    .eq("email", normalizedEmail)
-    .maybeSingle();
+    .select("id,email");
+  const { data: adminUser } = await (targetUserId
+    ? adminUserQuery.eq("id", targetUserId).maybeSingle()
+    : adminUserQuery.eq("email", normalizedEmail).maybeSingle());
   if (!adminUser) return NextResponse.json({ message: GENERIC_MESSAGE });
 
   const { data: latest } = await admin

@@ -1,6 +1,7 @@
 import { requireAdminAuth } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
+import { createActivatedAccountContext } from "@/lib/password-reset";
 
 const INVITATION_MAX_AGE_MS = 2 * 60 * 1000;
 
@@ -81,5 +82,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    activatedAccountContext: createActivatedAccountContext(auth.user.id, target.user.email ?? ""),
+  });
 }
