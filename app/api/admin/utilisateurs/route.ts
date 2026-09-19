@@ -102,7 +102,7 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
   const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation?invited_email=${encodeURIComponent(email)}`,
+    redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation`,
   });
   if (authError) {
     if (authError.code === "email_exists" || authError.status === 422) {
