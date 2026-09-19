@@ -57,8 +57,126 @@ create table if not exists admin_users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   role text not null default 'annonces',
+  activation_completed_at timestamptz,
   created_at timestamptz default now()
 );
+
+alter table admin_users
+  add column if not exists activation_completed_at timestamptz;
+
+drop trigger if exists on_auth_user_password_changed on auth.users;
+drop function if exists public.mark_admin_activation_completed();
+
+create table if not exists public.auth_rate_limits (
+  key text primary key,
+  attempts integer not null default 0,
+  window_started_at timestamptz not null default now()
+);
+
+alter table public.auth_rate_limits enable row level security;
+
+create or replace function public.check_auth_rate_limit(
+  p_key text,
+  p_max_attempts integer,
+  p_window_seconds integer
+)
+returns table(allowed boolean, retry_after_seconds integer)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_row public.auth_rate_limits%rowtype;
+  elapsed_seconds integer;
+begin
+  if p_key is null or length(p_key) < 16
+    or p_max_attempts < 1 or p_window_seconds < 1 then
+    return query select false, p_window_seconds;
+    return;
+  end if;
+
+  select * into current_row
+  from public.auth_rate_limits
+  where key = p_key
+  for update;
+
+  if not found then
+    insert into public.auth_rate_limits (key, attempts)
+    values (p_key, 1);
+    return query select true, 0;
+    return;
+  end if;
+
+  elapsed_seconds := floor(extract(epoch from (now() - current_row.window_started_at)))::integer;
+  if elapsed_seconds >= p_window_seconds then
+    update public.auth_rate_limits
+    set attempts = 1, window_started_at = now()
+    where key = p_key;
+    return query select true, 0;
+    return;
+  end if;
+
+  if current_row.attempts >= p_max_attempts then
+    return query select false, greatest(1, p_window_seconds - elapsed_seconds);
+    return;
+  end if;
+
+  update public.auth_rate_limits
+  set attempts = attempts + 1
+  where key = p_key;
+  return query select true, 0;
+end;
+$$;
+
+revoke all on function public.check_auth_rate_limit(text, integer, integer) from public, anon, authenticated;
+grant execute on function public.check_auth_rate_limit(text, integer, integer) to service_role;
+
+create table if not exists public.admin_password_reset_codes (
+  id uuid primary key default gen_random_uuid(),
+  admin_user_id uuid not null references public.admin_users(id) on delete cascade,
+  email text not null,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  attempts integer not null default 0,
+  resend_available_at timestamptz not null,
+  consumed_at timestamptz,
+  reset_token_hash text,
+  reset_token_expires_at timestamptz,
+  reset_token_used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists admin_password_reset_codes_lookup_idx
+  on public.admin_password_reset_codes (admin_user_id, created_at desc);
+
+alter table public.admin_password_reset_codes enable row level security;
+
+create or replace function public.increment_password_reset_attempt(
+  p_id uuid,
+  p_max_attempts integer
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_max_attempts < 1 then
+    return false;
+  end if;
+
+  update public.admin_password_reset_codes
+  set attempts = attempts + 1
+  where id = p_id
+    and consumed_at is null
+    and attempts < p_max_attempts;
+
+  return found;
+end;
+$$;
+
+revoke all on function public.increment_password_reset_attempt(uuid, integer) from public, anon, authenticated;
+grant execute on function public.increment_password_reset_attempt(uuid, integer) to service_role;
 
 -- =============================================
 -- RLS (Row Level Security)
@@ -102,6 +220,23 @@ $$;
 
 grant execute on function public.is_admin_user() to authenticated;
 grant execute on function public.is_super_admin() to authenticated;
+
+create or replace function public.can_manage_users()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where id = auth.uid()
+      and role in ('admin', 'super_admin')
+  );
+$$;
+
+grant execute on function public.can_manage_users() to authenticated;
 
 create or replace function public.can_edit_content()
 returns boolean
@@ -160,23 +295,26 @@ create policy "admin construction insert" on construction for insert with check 
 create policy "admin construction update" on construction for update using (public.can_edit_content()) with check (public.can_edit_content());
 create policy "admin construction delete" on construction for delete using (public.can_delete_content());
 drop policy if exists "admin users" on admin_users;
+drop policy if exists "admin users insert" on admin_users;
+drop policy if exists "admin users update" on admin_users;
+drop policy if exists "admin users delete" on admin_users;
 create policy "admin users read" on admin_users
   for select using (public.is_admin_user());
 create policy "admin users insert" on admin_users
   for insert
   with check (
-    public.is_super_admin()
-    or (public.is_admin_user() and role <> 'super_admin')
+    public.can_manage_users()
+    and (public.is_super_admin() or role <> 'super_admin')
   );
 create policy "admin users update" on admin_users
   for update
   using (
-    public.is_super_admin()
-    or (public.is_admin_user() and role <> 'super_admin')
+    public.can_manage_users()
+    and (public.is_super_admin() or role <> 'super_admin')
   )
   with check (
-    public.is_super_admin()
-    or (public.is_admin_user() and role <> 'super_admin')
+    public.can_manage_users()
+    and (public.is_super_admin() or role <> 'super_admin')
   );
 create policy "admin users delete" on admin_users
   for delete using (public.is_super_admin());

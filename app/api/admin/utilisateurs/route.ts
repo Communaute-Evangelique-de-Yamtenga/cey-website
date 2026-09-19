@@ -3,6 +3,7 @@ import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-a
 import { NextResponse } from "next/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const INVITATION_MAX_AGE_MS = 2 * 60 * 1000;
 
 export async function GET(req: Request) {
   const auth = await requireAdminAuth(req);
@@ -38,12 +39,20 @@ export async function GET(req: Request) {
   const authUsersById = new Map(authUsers.map((user) => [user.id, user]));
   const users = data.map((user) => {
     const authUser = authUsersById.get(user.id);
+    const activationCompleted = Boolean(user.activation_completed_at);
+    const invitationSentAt = authUser?.confirmation_sent_at ?? authUser?.invited_at;
+    const invitationExpired = Boolean(
+      !activationCompleted &&
+      invitationSentAt &&
+      Date.now() - new Date(invitationSentAt).getTime() >= INVITATION_MAX_AGE_MS
+    );
     return {
       ...user,
       username: authUser?.user_metadata?.display_name || user.email.split("@")[0],
-      status: authUser?.email_confirmed_at || authUser?.last_sign_in_at
+      status: activationCompleted
         ? "actif"
         : "en_attente",
+      invitationExpired,
     };
   });
 
@@ -93,9 +102,15 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
   const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation`,
+    redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation?invited_email=${encodeURIComponent(email)}`,
   });
   if (authError) {
+    if (authError.code === "email_exists" || authError.status === 422) {
+      return NextResponse.json(
+        { error: "Le compte existe déjà." },
+        { status: 409 }
+      );
+    }
     console.error("[admin utilisateurs invite]:", authError.message);
     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
   }
@@ -122,10 +137,13 @@ export async function DELETE(req: Request) {
   if (permissionResponse) return permissionResponse;
 
   if (auth.role !== "super_admin") {
-    return NextResponse.json(
-      { error: "Droits insuffisants. Seul un super-administrateur peut supprimer des comptes." },
-      { status: 403 }
-    );
+    const body = await req.clone().json().catch(() => null);
+    if (!body?.expiredInvitation) {
+      return NextResponse.json(
+        { error: "Droits insuffisants. Seul un super-administrateur peut supprimer des comptes." },
+        { status: 403 }
+      );
+    }
   }
 
   const body = await req.json().catch(() => null);
@@ -146,6 +164,25 @@ export async function DELETE(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+  if (auth.role !== "super_admin") {
+    const { data: target } = await admin.auth.admin.getUserById(id);
+    const { data: targetAdmin } = await admin
+      .from("admin_users")
+      .select("activation_completed_at")
+      .eq("id", id)
+      .maybeSingle();
+    const invitationSentAt = target.user?.confirmation_sent_at ?? target.user?.invited_at;
+    const activationCompleted = Boolean(targetAdmin?.activation_completed_at);
+    const invitationExpired = Boolean(
+      target.user &&
+      !activationCompleted &&
+      invitationSentAt &&
+      Date.now() - new Date(invitationSentAt).getTime() >= INVITATION_MAX_AGE_MS
+    );
+    if (!invitationExpired) {
+      return NextResponse.json({ error: "Invitation non expirée." }, { status: 400 });
+    }
+  }
   await admin.auth.admin.deleteUser(id);
   const supabase = await createClient();
   await supabase.from("admin_users").delete().eq("id", id);
