@@ -1,4 +1,4 @@
-import { type VideoExt, deduplicateByDuration, extractDayFromTitle, fillGapsWithFacebook, filterVideos, sortVideosByTitleDate } from "@/lib/youtube-utils";
+import { type VideoExt, deduplicateByDuration, fillGapsWithFacebook, filterVideos, sortVideosByTitleDate } from "@/lib/youtube-utils";
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const BASE = "https://www.googleapis.com/youtube/v3";
@@ -132,21 +132,8 @@ export async function GET() {
         const culte  = sortVideosByTitleDate(deduplicateByDuration([...culteYT, ...culteFB]));
         const louange = sortVideosByTitleDate(deduplicateByDuration([...louangeYT, ...louangeFB]));
         const etude  = sortVideosByTitleDate(deduplicateByDuration([...etudeYT, ...etudeFB]));
-        // DEBUG 25 juillet
         const filled = fillGapsWithFacebook(priereYT, allFB, ["31 jours", "priere", "prière", "jeudi", "veillée"]);
         const priere = sortVideosByTitleDate(deduplicateByDuration(filled));
-        console.log("=== AFTER DEDUP ===", priere.map(v => v.title));
-        // trace dedup sur le 25
-        const v25 = filled.find(v => v.title.includes("25"));
-        if (v25) {
-            const before = filled.slice(0, filled.indexOf(v25));
-            console.log("=== CHECK 25 vs ===", before.map(r => ({
-                title: r.title,
-                durationR: r.duration, durationV: v25.duration,
-                durationMatch: r.duration && v25.duration ? Math.abs(r.duration - v25.duration) < 300 : "N/A (fallback)",
-                dayR: extractDayFromTitle(r.title), dayV: extractDayFromTitle(v25.title),
-            })));
-        }
 
         const classifiedIds = new Set([...culteFB, ...louangeFB, ...etudeFB, ...enseignementFB].map(v => v.videoId));
         const autres = allFB.filter(v => {
@@ -157,7 +144,7 @@ export async function GET() {
 
         return Response.json({ teaser: [culte[0], louange[0], etude[0]].filter(Boolean), culte, louange, etude, priere, enseignement: sortVideosByTitleDate(enseignementFB), autres: sortVideosByTitleDate(autres) });
     } catch (error) {
-        console.error("Media API error", error);
+        console.error("Media API error");
         return Response.json({ error: "Impossible de charger les vidéos" }, { status: 502 });
     }
 }
