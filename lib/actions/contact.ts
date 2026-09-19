@@ -1,7 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdmin } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { checkAuthRateLimit, hashRateLimitKey } from "@/lib/auth-rate-limit";
 
 export interface ContactPayload {
   nom: string;
@@ -26,10 +29,30 @@ const MAX_NOM = 100;
 const MAX_CONTACT = 150;
 const MAX_MESSAGE = 3000;
 
+const CONTACT_RATE_LIMIT_MAX = 5;
+const CONTACT_RATE_LIMIT_WINDOW = 600; // 10 minutes
+
 export async function submitContact(data: ContactPayload): Promise<ContactResult> {
   // Anti-spam : si le champ honeypot est rempli, c'est un bot
   if (data.honeypot) {
-    return { ok: true }; // on fait croire au bot que ça a marché
+    return { ok: true };
+  }
+
+  const h = await headers();
+  const forwarded = h.get("x-forwarded-for") ?? "unknown";
+  const ip = forwarded.split(",")[0].trim();
+  const admin = createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  const limit = await checkAuthRateLimit(
+    admin,
+    `contact:${hashRateLimitKey(ip)}`,
+    CONTACT_RATE_LIMIT_MAX,
+    CONTACT_RATE_LIMIT_WINDOW
+  );
+  if (!limit.allowed) {
+    return { ok: false, error: "Trop de messages envoyés. Réessayez plus tard." };
   }
 
   const nom = data.nom.trim();
