@@ -319,7 +319,41 @@ create policy "admin users update" on admin_users
 create policy "admin users delete" on admin_users
   for delete using (public.is_super_admin());
 
--- 6. Programme hebdomadaire
+-- 6. Messages de contact
+create table if not exists public.messages_contact (
+  id uuid primary key default gen_random_uuid(),
+  nom text not null,
+  contact text not null,
+  message text not null,
+  created_at timestamptz default now()
+);
+
+alter table public.messages_contact enable row level security;
+
+drop policy if exists "Allow all" on public.messages_contact;
+
+create policy "insert public messages_contact"
+  on public.messages_contact for insert
+  to anon, authenticated
+  with check (true);
+
+create policy "select admin messages_contact"
+  on public.messages_contact for select
+  to authenticated
+  using (public.is_admin_user());
+
+create policy "update editor admin messages_contact"
+  on public.messages_contact for update
+  to authenticated
+  using (public.can_edit_content())
+  with check (public.can_edit_content());
+
+create policy "delete admin messages_contact"
+  on public.messages_contact for delete
+  to authenticated
+  using (public.can_delete_content());
+
+-- 7. Programme hebdomadaire
 create table if not exists programme (
   id uuid primary key default gen_random_uuid(),
   day text not null,
@@ -335,7 +369,7 @@ create policy "admin programme insert" on programme for insert with check (publi
 create policy "admin programme update" on programme for update using (public.can_edit_content()) with check (public.can_edit_content());
 create policy "admin programme delete" on programme for delete using (public.can_delete_content());
 
--- 7. Image principale du temple (home)
+-- 8. Image principale du temple (home)
 create table if not exists temple_image (
   id uuid primary key default gen_random_uuid(),
   url text not null,
@@ -349,7 +383,7 @@ create policy "admin temple_image insert" on temple_image for insert with check 
 create policy "admin temple_image update" on temple_image for update using (public.can_edit_content()) with check (public.can_edit_content());
 create policy "admin temple_image delete" on temple_image for delete using (public.can_delete_content());
 
--- 8. Photos du chantier (page projet)
+-- 9. Photos du chantier (page projet)
 create table if not exists chantier_photos (
   id uuid primary key default gen_random_uuid(),
   url text not null,
