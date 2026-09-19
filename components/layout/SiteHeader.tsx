@@ -10,6 +10,7 @@ import { SearchOverlay } from "@/components/layout/SearchOverlay";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { primaryNav, structuresMenu, groupesMenu } from "@/lib/content/nav";
+import { useLive } from "@/components/layout/LiveContext";
 
 function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
@@ -29,13 +30,14 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { live } = useLive();
 
   const isStructures = pathname.startsWith("/structures");
   const isGroupes = pathname.startsWith("/groupes");
 
   return (
     <>
-      <div className="sticky top-0 z-60 border-b border-border bg-white/96 backdrop-blur-sm">
+      <div className={cn("sticky z-60 border-b border-border bg-white/96 backdrop-blur-sm", live ? "top-[37px]" : "top-0")}>
         <Container className="flex items-center gap-7">
           <Link href="/" className="flex items-center gap-3 py-3">
             <Logo />
@@ -45,8 +47,8 @@ export function SiteHeader() {
                 <br />
                 de Yamtenga
               </span>
-              <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-red">
-                Assemblées de Dieu
+              <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-[0.14em] text-red">
+                Assemblées de Dieu · Ouagadougou
               </span>
             </span>
           </Link>

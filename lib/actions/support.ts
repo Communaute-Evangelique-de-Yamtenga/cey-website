@@ -17,7 +17,7 @@ export async function submitSupport(data: SupportPayload): Promise<SupportResult
 
   // TODO: relay to a real channel (email, WhatsApp Business API…) once the
   // church picks one — for now the engagement is only logged server-side.
-  console.log("[projet] nouvel engagement de soutien", data);
+  console.log("[projet] nouvel engagement de soutien reçu");
 
   return { ok: true };
 }

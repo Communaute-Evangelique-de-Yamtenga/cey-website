@@ -38,7 +38,7 @@ export function StructuresGroupsOverview() {
           <div className="flex items-center justify-between">
             <div className="text-[17px] font-extrabold text-ink">Nos groupes</div>
             <span className="rounded-full bg-red-tint px-2.5 py-1 text-[11px] font-bold text-red">
-              6 chorales & groupes
+              5 chorales & groupes
             </span>
           </div>
           <div className="mt-3.5 flex flex-col">

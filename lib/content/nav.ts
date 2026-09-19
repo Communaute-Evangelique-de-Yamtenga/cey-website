@@ -13,6 +13,6 @@ export const structuresMenu = structures.map((s) => ({
 
 export const groupesMenu = [
   { label: "Cellule d'intercession", sub: "Prière & intercession", href: "/groupes" },
-  { label: "Louange & adoration", sub: "6 chorales et groupes", href: "/groupes" },
+  { label: "Louange & adoration", sub: "5 chorales et groupes", href: "/groupes" },
   { label: "Action sociale", sub: "Solidarité & entraide", href: "/groupes" },
 ];

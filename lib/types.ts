@@ -23,6 +23,7 @@ export interface Structure {
   mission: string;
   upcoming: Activity[];
   past: Activity[];
+  photo?: string | null;
 }
 
 export interface ChoraleGroup {
@@ -37,6 +38,7 @@ export interface Pastor {
   role: string;
   name: string;
   description: string;
+  photo?: string;
 }
 
 export interface ChurchEvent {
@@ -59,6 +61,10 @@ export interface MediaItem {
   category: string;
   duration: string;
   date: string;
+  videoId?: string;
+  thumbnail?: string;
+  url?: string;
+  source?: "youtube" | "facebook";
 }
 
 export interface Verse {

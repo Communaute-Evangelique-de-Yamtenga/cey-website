@@ -28,13 +28,28 @@ export const upcomingEvents: ChurchEvent[] = [
 ];
 
 export const weeklyProgram: ProgramItem[] = [
-  { day: "Dimanche", title: "Culte d'adoration", hours: "8h30 – 11h30" },
-  { day: "Mercredi", title: "Étude biblique", hours: "18h30" },
-  { day: "Jeudi", title: "Prière de jeudi", hours: "18h30" },
-  { day: "Vendredi", title: "Veillée de prière (dernier du mois)", hours: "21h00" },
+  { day: "MARDI", title: "Etude Biblique", hours: "19h00  – 20h30" },
+  { day: "Mercredi", title: "Prière d'intercession et de délivrance", hours: "A partir de 9h30" },
+  { day: "Jeudi", title: "Prière d'édification et pour les besoins", hours: "19h00-21h00" },
   {
-    day: "Samedi",
+    day: "Vendredi/Samedi",
     title: "Répétitions des chorales & activités des groupes",
-    hours: "15h00",
+    hours: "19h – 21h",
+  },
+  { day: "Dernier Vendredi du mois", title: "Veillée de prière (dernier du mois)", hours: "21h00" },
+  {
+    day: "Dimanche",
+    title: "Culte en français",
+    hours: "	07h30 – 10h00",
+  },
+  {
+    day: "Dimanche(mooré)",
+    title: "Culte en mooré",
+    hours: "	10h15 – 12h15",
+  },
+  {
+    day: "1ᵉʳ Dimanche de chaque mois",
+    title: "Culte en commun",
+    hours: "07h30 – 11h00",
   },
 ];
