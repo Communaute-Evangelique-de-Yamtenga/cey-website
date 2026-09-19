@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Lora, Karla } from "next/font/google";
+import { LiveProvider } from "@/components/layout/LiveContext";
 import { TopBar } from "@/components/layout/TopBar";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -35,10 +36,12 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${lora.variable} ${karla.variable}`}>
       <body className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
-        <TopBar />
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
+        <LiveProvider>
+          <TopBar />
+          <SiteHeader />
+          <main className="flex-1">{children}</main>
+          <SiteFooter />
+        </LiveProvider>
       </body>
     </html>
   );
