@@ -26,7 +26,7 @@ export default async function MediasPage({
   const { categorie } = await searchParams;
   const active = categorie && (mediaCategories as readonly string[]).includes(categorie) ? categorie : ALL;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://cey-website.vercel.app";
   const res = await fetch(`${siteUrl}/api/youtube`, { cache: "no-store" });
   const ytData = res.ok ? await res.json() : { error: `API médias indisponible (${res.status})` };
 
