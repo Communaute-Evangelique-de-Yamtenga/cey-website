@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminAuth, requireAdminPermission } from "@/lib/supabase/admin-auth";
 import { NextResponse } from "next/server";
+import { resolveMx } from "node:dns/promises";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const INVITATION_MAX_AGE_MS = 2 * 60 * 1000;
+const INVITATION_MAX_AGE_MS = 60 * 60 * 1000;
 
 export async function GET(req: Request) {
   const auth = await requireAdminAuth(req);
@@ -76,13 +77,23 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const email = body && typeof body === "object" && "email" in body ? body.email : null;
   const role = body && typeof body === "object" && "role" in body ? body.role : null;
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
   if (
-    typeof email !== "string" ||
-    email.length > 320 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+    !normalizedEmail ||
+    normalizedEmail.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
     typeof role !== "string"
   ) {
     return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
+  }
+  const emailDomain = normalizedEmail.slice(normalizedEmail.lastIndexOf("@") + 1);
+  try {
+    const mxRecords = await resolveMx(emailDomain);
+    if (mxRecords.length === 0) {
+      return NextResponse.json({ error: "Le domaine email ne peut pas recevoir de messages." }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Le domaine email est invalide ou ne peut pas recevoir de messages." }, { status: 400 });
   }
 
   const allowedRoles = ["admin", "editeur", "lecteur"];
@@ -101,7 +112,7 @@ export async function POST(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
+  const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
     redirectTo: `${process.env.ADMIN_URL || "http://localhost:3001"}/login/activation`,
   });
   if (authError) {
@@ -117,7 +128,7 @@ export async function POST(req: Request) {
 
   const { error: insertError } = await admin
     .from("admin_users")
-    .insert({ id: authData.user.id, email, role });
+    .insert({ id: authData.user.id, email: normalizedEmail, role });
   if (insertError) {
     await admin.auth.admin.deleteUser(authData.user.id);
     console.error("[admin utilisateurs profile insert]:", insertError.message);

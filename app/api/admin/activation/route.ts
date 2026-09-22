@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 import { createActivatedAccountContext } from "@/lib/password-reset";
 
-const INVITATION_MAX_AGE_MS = 2 * 60 * 1000;
+const INVITATION_MAX_AGE_MS = 60 * 60 * 1000;
 
 export async function POST(req: Request) {
   const auth = await requireAdminAuth(req);
