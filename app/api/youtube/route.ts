@@ -17,6 +17,7 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
     const fields = "title,description,created_time,thumbnails,permalink_url";
     const base = `https://graph.facebook.com/${pageId}/videos?fields=${fields}&limit=100&access_token=${token}`;
     const liveBase = `https://graph.facebook.com/${pageId}/live_videos?fields=${fields}&limit=100&access_token=${token}`;
+    const postsBase = `https://graph.facebook.com/${pageId}/posts?fields=message,created_time,attachments{media,type,target,url,title,description}&limit=100&access_token=${token}`;
     const opts = { next: { revalidate: 3600 } };
 
     if (!token || !pageId) throw new Error("Configuration Facebook manquante");
@@ -39,16 +40,17 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
         fetchJson(`${base}&type=UPLOADED`),
         fetchJson(`${base}&type=TAGGED`),
     ]);
+    const dataPosts = await fetchJson(postsBase);
 
-    const validSources = [dataLive, dataUploaded, dataArchive].filter((source) => !source?.error);
+    const validSources = [dataLive, dataUploaded, dataArchive, dataPosts].filter((source) => !source?.error);
 
     if (validSources.length === 0) {
-        const firstError = [dataLive, dataUploaded, dataArchive].find((source) => source?.error)?.error;
+        const firstError = [dataLive, dataUploaded, dataArchive, dataPosts].find((source) => source?.error)?.error;
         throw new Error(`Facebook: ${firstError?.message ?? "requête refusée"}`);
     }
 
     const seen = new Set<string>();
-    return [...(dataLive?.data ?? []), ...(dataUploaded?.data ?? []), ...(dataArchive?.data ?? [])]
+    const directVideos = [...(dataLive?.data ?? []), ...(dataUploaded?.data ?? []), ...(dataArchive?.data ?? [])]
         .filter(v => {
             if (seen.has(v.id) || (!v.title && !v.description)) return false;
             seen.add(v.id);
@@ -64,6 +66,48 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
             url: `https://www.facebook.com/${pageId}/videos/${v.id}`,
             source: "facebook",
         }));
+    const postVideos = (dataPosts?.data ?? [])
+        .flatMap((post: {
+            id?: string;
+            message?: string;
+            created_time?: string;
+            attachments?: {
+                data?: Array<{
+                    type?: string;
+                    title?: string;
+                    description?: string;
+                    target?: { id?: string; url?: string };
+                    url?: string;
+                    media?: { image?: { src?: string } };
+                }>;
+            };
+        }) => (post.attachments?.data ?? [])
+            .filter((attachment) => attachment.type?.toLowerCase().includes("video"))
+            .map((attachment) => {
+                const videoId = attachment.target?.id ?? post.id;
+                if (!videoId || seen.has(videoId)) return null;
+                const title = attachment.title ?? post.message?.split("\n").find(Boolean) ?? "Vidéo Facebook";
+                const url = attachment.target?.url?.startsWith("https://www.facebook.com/")
+                    ? attachment.target.url
+                    : attachment.url?.startsWith("https://www.facebook.com/")
+                        ? attachment.url
+                        : `https://www.facebook.com/${pageId}/videos/${videoId}`;
+                seen.add(videoId);
+                return {
+                    videoId,
+                    title,
+                    title_raw: title,
+                    description: attachment.description ?? post.message,
+                    date: "",
+                    publishedAt: post.created_time ?? "",
+                    thumbnail: attachment.media?.image?.src ?? "",
+                    url,
+                    source: "facebook" as const,
+                };
+            }))
+        .filter((video: VideoExt | null): video is VideoExt => video !== null);
+
+    return [...directVideos, ...postVideos];
 }
 
 async function getVideoDetails(videoIds: string[]): Promise<Record<string, { date: string; duration: number; publishedAt: string }>> {
