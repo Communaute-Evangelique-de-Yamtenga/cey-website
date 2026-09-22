@@ -4,7 +4,43 @@ import { NextResponse } from "next/server";
 import { resolveMx } from "node:dns/promises";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EMAIL_PATTERN = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+const COMMON_EMAIL_DOMAINS = [
+  "gmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "hotmail.com",
+  "icloud.com",
+  "proton.me",
+  "protonmail.com",
+];
 const INVITATION_MAX_AGE_MS = 60 * 60 * 1000;
+
+function hasAtMostOneEdit(distanceFrom: string, target: string): boolean {
+  if (Math.abs(distanceFrom.length - target.length) > 1) return false;
+  const rows = Array.from({ length: distanceFrom.length + 1 }, (_, index) => index);
+  for (let targetIndex = 1; targetIndex <= target.length; targetIndex += 1) {
+    let previousDiagonal = rows[0];
+    rows[0] = targetIndex;
+    for (let sourceIndex = 1; sourceIndex <= distanceFrom.length; sourceIndex += 1) {
+      const previousRow = rows[sourceIndex];
+      const cost = distanceFrom[sourceIndex - 1] === target[targetIndex - 1] ? 0 : 1;
+      rows[sourceIndex] = Math.min(
+        rows[sourceIndex] + 1,
+        rows[sourceIndex - 1] + 1,
+        previousDiagonal + cost
+      );
+      previousDiagonal = previousRow;
+    }
+  }
+  return rows[distanceFrom.length] <= 1;
+}
+
+function isLikelyMisspelledEmailDomain(domain: string): boolean {
+  return COMMON_EMAIL_DOMAINS.some(
+    (commonDomain) => domain !== commonDomain && hasAtMostOneEdit(domain, commonDomain)
+  );
+}
 
 export async function GET(req: Request) {
   const auth = await requireAdminAuth(req);
@@ -81,19 +117,32 @@ export async function POST(req: Request) {
   if (
     !normalizedEmail ||
     normalizedEmail.length > 320 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
+    !EMAIL_PATTERN.test(normalizedEmail) ||
     typeof role !== "string"
   ) {
-    return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
+    return NextResponse.json({ error: "Adresse email invalide." }, { status: 400 });
   }
   const emailDomain = normalizedEmail.slice(normalizedEmail.lastIndexOf("@") + 1);
+  if (isLikelyMisspelledEmailDomain(emailDomain)) {
+    return NextResponse.json(
+      { error: "Vérifiez l'orthographe du domaine de l'adresse email." },
+      { status: 400 }
+    );
+  }
   try {
     const mxRecords = await resolveMx(emailDomain);
     if (mxRecords.length === 0) {
       return NextResponse.json({ error: "Le domaine email ne peut pas recevoir de messages." }, { status: 400 });
     }
-  } catch {
-    return NextResponse.json({ error: "Le domaine email est invalide ou ne peut pas recevoir de messages." }, { status: 400 });
+  } catch (error) {
+    const dnsCode = error && typeof error === "object" && "code" in error ? error.code : null;
+    if (dnsCode === "ENOTFOUND" || dnsCode === "ENODATA" || dnsCode === "NXDOMAIN") {
+      return NextResponse.json(
+        { error: "Le domaine email est invalide ou ne peut pas recevoir de messages." },
+        { status: 400 }
+      );
+    }
+    console.warn("[admin utilisateurs email DNS]: résolution MX indisponible", dnsCode ?? "unknown");
   }
 
   const allowedRoles = ["admin", "editeur", "lecteur"];

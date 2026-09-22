@@ -2,6 +2,7 @@ import { type VideoExt, deduplicateByDuration, fillGapsWithFacebook, filterVideo
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const BASE = "https://www.googleapis.com/youtube/v3";
+const MAX_CATEGORY_VIDEOS = 30;
 
 export const playlists = {
     culte:        { id: "PLZQId5viBilA", label: "Cultes de dimanche",   url: "https://www.youtube.com/playlist?list=PLZQId5viBilA" },
@@ -14,9 +15,9 @@ export const playlists = {
 async function getAllFacebookVideos(): Promise<VideoExt[]> {
     const token = process.env.FACEBOOK_ACCESS_TOKEN;
     const pageId = process.env.FACEBOOK_PAGE_ID;
-    const fields = "title,description,created_time,thumbnails,permalink_url";
-    const base = `https://graph.facebook.com/${pageId}/videos?fields=${fields}&limit=100&access_token=${token}`;
-    const liveBase = `https://graph.facebook.com/${pageId}/live_videos?fields=${fields}&limit=100&access_token=${token}`;
+    const fields = "title,description,created_time,permalink_url,picture";
+    const base = `https://graph.facebook.com/${pageId}/videos?fields=id,${fields}&limit=50&access_token=${token}`;
+    const liveBase = `https://graph.facebook.com/${pageId}/live_videos?fields=id,${fields}&limit=50&access_token=${token}`;
     const postsBase = `https://graph.facebook.com/${pageId}/posts?fields=message,created_time,attachments{media,type,target,url,title,description}&limit=100&access_token=${token}`;
     const opts = { next: { revalidate: 3600 } };
 
@@ -27,11 +28,13 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
             const res = await fetch(url, opts);
             if (!res.ok) {
                 const payload = await res.json().catch(() => ({}));
-                return { error: { message: payload?.error?.message ?? `Erreur Facebook (${res.status})` } };
+                const message = payload?.error?.message ?? `Erreur Facebook (${res.status})`;
+                return { error: { message } };
             }
             return await res.json();
         } catch (error) {
-            return { error: { message: error instanceof Error ? error.message : "requête refusée" } };
+            const message = error instanceof Error ? error.message : "requête refusée";
+            return { error: { message } };
         }
     };
 
@@ -56,13 +59,13 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
             seen.add(v.id);
             return true;
         })
-        .map((v: { id: string; title?: string; description?: string; thumbnails?: { data: { uri: string }[] } }) => ({
+        .map((v: { id: string; title?: string; description?: string; picture?: string }) => ({
             videoId: v.id,
             title: v.title ?? v.description?.slice(0, 60) ?? "Vidéo",
             title_raw: v.title,
             description: v.description,
             date: "",
-            thumbnail: v.thumbnails?.data?.[0]?.uri ?? "",
+            thumbnail: v.picture ?? "",
             url: `https://www.facebook.com/${pageId}/videos/${v.id}`,
             source: "facebook",
         }));
@@ -82,7 +85,12 @@ async function getAllFacebookVideos(): Promise<VideoExt[]> {
                 }>;
             };
         }) => (post.attachments?.data ?? [])
-            .filter((attachment) => attachment.type?.toLowerCase().includes("video"))
+            .filter((attachment) => {
+                const attachmentUrl = attachment.target?.url ?? attachment.url ?? "";
+                return attachment.type?.toLowerCase().includes("video")
+                    || (attachmentUrl.startsWith("https://www.facebook.com/")
+                        && (attachmentUrl.includes("/reel/") || attachmentUrl.includes("/videos/")));
+            })
             .map((attachment) => {
                 const videoId = attachment.target?.id ?? post.id;
                 if (!videoId || seen.has(videoId)) return null;
@@ -114,7 +122,11 @@ async function getVideoDetails(videoIds: string[]): Promise<Record<string, { dat
     if (!videoIds.length) return {};
     const res = await fetch(`${BASE}/videos?part=snippet,contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`, { next: { revalidate: 3600 } });
     const data = await res.json();
-    if (data.error) throw new Error(`YouTube: ${data.error.message ?? "requête refusée"}`);
+    if (data.error) {
+        const message = `YouTube details: ${data.error.message ?? "requête refusée"}`;
+        console.error(`[media:youtube-details] error=${message}`);
+        throw new Error(message);
+    }
     const map: Record<string, { date: string; duration: number; publishedAt: string }> = {};
     for (const item of data.items ?? []) {
         const m = (item.contentDetails?.duration ?? "").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -127,14 +139,21 @@ async function getVideoDetails(videoIds: string[]): Promise<Record<string, { dat
     return map;
 }
 
-async function getPlaylistVideos(playlistId: string, maxResults = 12): Promise<VideoExt[]> {
+async function getPlaylistVideos(playlistId: string, maxResults = 50, excludeKeywords: string[] = []): Promise<VideoExt[]> {
     const res = await fetch(`${BASE}/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${API_KEY}`, { next: { revalidate: 3600 } });
     const data = await res.json();
-    if (data.error) throw new Error(`YouTube: ${data.error.message ?? "requête refusée"}`);
+    if (data.error) {
+        const message = `YouTube playlist: ${data.error.message ?? "requête refusée"}`;
+        console.error(`[media:youtube-playlist] error=${message}`);
+        throw new Error(message);
+    }
     const items = (data.items ?? []).filter((item: { snippet?: { title?: string; resourceId?: { videoId?: string } } }) => {
         const title = item.snippet?.title?.trim().toLowerCase() ?? "";
         const videoId = item.snippet?.resourceId?.videoId;
-        return Boolean(videoId) && title !== "deleted video" && title !== "private video";
+        return Boolean(videoId)
+            && title !== "deleted video"
+            && title !== "private video"
+            && !excludeKeywords.some((keyword) => title.includes(keyword));
     }).slice(0, maxResults);
     const videoIds = items.map((item: { snippet: { resourceId: { videoId: string } } }) => item.snippet.resourceId.videoId);
     const details = await getVideoDetails(videoIds);
@@ -161,34 +180,45 @@ async function getPlaylistVideos(playlistId: string, maxResults = 12): Promise<V
 export async function GET() {
     try {
         const [culteYT, louangeYT, etudeYT, priereYT, allFB] = await Promise.all([
-            getPlaylistVideos(playlists.culte.id!, 15),
-            getPlaylistVideos(playlists.louange.id!),
-            getPlaylistVideos(playlists.etude.id!),
-            getPlaylistVideos(playlists.priere.id!, 50),
+            getPlaylistVideos(playlists.culte.id!, MAX_CATEGORY_VIDEOS, ["louange", "adoration", "chorale"]),
+            getPlaylistVideos(playlists.louange.id!, MAX_CATEGORY_VIDEOS),
+            getPlaylistVideos(playlists.etude.id!, MAX_CATEGORY_VIDEOS),
+            getPlaylistVideos(playlists.priere.id!, MAX_CATEGORY_VIDEOS),
             getAllFacebookVideos(),
         ]);
 
-        const culteFB       = filterVideos(allFB, ["culte du dimanche", "culte en français", "culte en commun"], ["priere", "prière", "louange", "étude", "etude"], true, Math.max(0, 15 - culteYT.length));
-        const louangeFB     = filterVideos(allFB, ["louange", "adoration", "chorale", "groupe musical", "célébrons", "pâques", "musical"], ["priere", "prière", "31 jours"], false, Math.max(0, 3 - louangeYT.length));
-        const etudeFB       = filterVideos(allFB, ["etude biblique", "étude biblique"], [], true, Math.max(0, 3 - etudeYT.length));
-        const enseignementFB = filterVideos(allFB, ["enseignement"], ["priere", "prière", "31 jours"], true, 3);
+        const culteFB       = filterVideos(allFB, ["culte du dimanche", "culte en français", "culte en commun"], ["priere", "prière", "louange", "étude", "etude"], true, Math.max(0, MAX_CATEGORY_VIDEOS - culteYT.length));
+        const louangeFB     = filterVideos(allFB, ["louange", "adoration", "chant", "chants", "chorale", "groupe musical", "célébrons", "pâques", "musical"], ["priere", "prière", "31 jours"], false, Math.max(0, MAX_CATEGORY_VIDEOS - louangeYT.length));
+        const etudeFB       = filterVideos(allFB, ["etude biblique", "étude biblique"], [], true, Math.max(0, MAX_CATEGORY_VIDEOS - etudeYT.length));
+        const enseignementFB = filterVideos(allFB, ["enseignement"], ["priere", "prière", "31 jours"], false, MAX_CATEGORY_VIDEOS);
 
         const culte  = sortVideosByTitleDate(deduplicateByDuration([...culteYT, ...culteFB]));
         const louange = sortVideosByTitleDate(deduplicateByDuration([...louangeYT, ...louangeFB]));
         const etude  = sortVideosByTitleDate(deduplicateByDuration([...etudeYT, ...etudeFB]));
-        const filled = fillGapsWithFacebook(priereYT, allFB, ["31 jours", "priere", "prière", "jeudi", "veillée"]);
-        const priere = sortVideosByTitleDate(deduplicateByDuration(filled));
+        const prayerFacebook = filterVideos(
+            allFB,
+            ["mois de prière", "mois de priere", "31 jours", "priere", "prière", "jeudi", "veillée"],
+            [],
+            true,
+            Math.max(0, MAX_CATEGORY_VIDEOS - priereYT.length)
+        );
+        const filled = fillGapsWithFacebook(priereYT, prayerFacebook, ["31 jours", "priere", "prière", "jeudi", "veillée"]);
+        const filledIds = new Set(filled.map((video) => video.videoId));
+        const additionalPrayerFacebook = prayerFacebook.filter((video) => !filledIds.has(video.videoId));
+        const priere = sortVideosByTitleDate(
+            deduplicateByDuration([...filled, ...additionalPrayerFacebook]).slice(0, MAX_CATEGORY_VIDEOS)
+        );
 
         const classifiedIds = new Set([...culteFB, ...louangeFB, ...etudeFB, ...enseignementFB].map(v => v.videoId));
         const autres = allFB.filter(v => {
             if (classifiedIds.has(v.videoId)) return false;
             const t = (v.title_raw ?? "").toLowerCase();
-            return !["prière", "priere", "31 jours", "jeudi", "veillée", "culte", "dimanche", "étude", "etude", "biblique", "louange", "adoration", "chorale"].some(k => t.includes(k));
-        }).slice(0, 6);
+            return !["prière", "priere", "31 jours", "jeudi", "veillée", "culte", "dimanche", "étude", "etude", "biblique", "louange", "adoration", "chant", "chants", "chorale"].some(k => t.includes(k));
+        }).slice(0, MAX_CATEGORY_VIDEOS);
 
         return Response.json({ teaser: [culte[0], louange[0], etude[0]].filter(Boolean), culte, louange, etude, priere, enseignement: sortVideosByTitleDate(enseignementFB), autres: sortVideosByTitleDate(autres) });
     } catch (error) {
-        console.error("Media API error");
+        console.error("Media API error:", error instanceof Error ? error.message : error);
         return Response.json({ error: "Impossible de charger les vidéos" }, { status: 502 });
     }
 }
