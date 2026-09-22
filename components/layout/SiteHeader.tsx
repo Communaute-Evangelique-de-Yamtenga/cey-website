@@ -37,7 +37,12 @@ export function SiteHeader() {
 
   return (
     <>
-      <div className={cn("sticky z-60 border-b border-border bg-white/96 backdrop-blur-sm", live ? "top-[37px]" : "top-0")}>
+      <div
+        className={cn(
+          "sticky z-60 mr-3 border-b border-border bg-white/96 backdrop-blur-sm",
+          live ? "top-[37px]" : "top-0"
+        )}
+      >
         <Container className="flex items-center gap-7">
           <Link href="/" className="flex items-center gap-3 py-3">
             <Logo />

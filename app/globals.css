@@ -31,6 +31,31 @@
   --font-sans: var(--font-karla), system-ui, sans-serif;
 }
 
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: #9aa0ae #f0ede6;
+}
+
+html::-webkit-scrollbar {
+  width: 12px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #f0ede6;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #9aa0ae;
+  border: 3px solid #f0ede6;
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: #5a6172;
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);

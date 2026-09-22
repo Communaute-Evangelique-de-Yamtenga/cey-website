@@ -48,6 +48,7 @@ export function deduplicateByDuration(videos: VideoExt[]): Video[] {
     const result: VideoExt[] = [];
     for (const v of videos) {
         const isDuplicate = result.some(r => {
+            if (r.source === v.source) return false;
             if (r.duration && v.duration) return Math.abs(r.duration - v.duration) < 60;
             const dayR = extractDayFromTitle(r.title);
             const dayV = extractDayFromTitle(v.title);
